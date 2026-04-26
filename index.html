@@ -562,9 +562,10 @@ function rC(){
       h+='<div class="gctbar"><div class="gctf" style="width:'+pct+'%;background:'+bc+'"></div></div>';
       h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,0.7)"><span>已用 '+fm(c.sp)+'</span><span>'+c.pd+'</span></div>';
       if(isE){
-        /* ★ 修复1：消费金额+日期单独一行，记录按钮独占一行，避免溢出 */
+        /* ★ 修复1：三行竖排，每行独占全宽，彻底避免溢出 */
         h+='<div class="gcexp">';
-        h+='<div style="display:flex;gap:6px;margin-bottom:6px"><input class="gcsi" id="sa_'+c.id+'" type="number" step="0.01" placeholder="消费金额" inputmode="decimal"><input class="gcsi" id="sd_'+c.id+'" type="date" value="'+td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0')+'"></div>';
+        h+='<input class="gcsi" id="sa_'+c.id+'" type="number" step="0.01" placeholder="消费金额" inputmode="decimal" style="width:100%;margin-bottom:6px">';
+        h+='<input class="gcsi" id="sd_'+c.id+'" type="date" value="'+td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0')+'" style="width:100%;margin-bottom:6px">';
         h+='<button class="gcsb" style="width:100%;margin-bottom:6px" onclick="addSp(\''+c.id+'\')">记录消费</button>';
         if(c.cn!==undefined){h+='<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center"><span style="font-size:13px;color:rgba(255,255,255,0.55)">卡号</span><input class="gcsi" id="cn_'+c.id+'" value="'+(c.cn||"")+'" placeholder="编号"><button class="gcsb" onclick="uCN(\''+c.id+'\')">保存</button></div>'}
         if(c.log&&c.log.length){h+='<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:4px">消费记录</div><div class="gcsl">';c.log.slice().reverse().forEach(function(s){h+='<div class="gcse"><span>'+s.d+'</span><span style="font-family:DM Mono,monospace;color:#E85D4A">-'+fm(s.a)+'</span></div>'});h+='</div>'}
