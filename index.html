@@ -258,6 +258,51 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
   font-family:'DM Sans',sans-serif;
   background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);min-height:52px;
 }
+
+/* === 头部同步按钮 === */
+.hd-sync{
+  margin-left:auto;flex-shrink:0;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;cursor:pointer;
+  transition:background .15s;
+}
+.hd-sync:active{background:rgba(255,255,255,0.12)}
+
+/* === 设置/同步面板（复用底部弹窗样式）=== */
+#sp{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#14161D;
+  border-top:2px solid rgba(91,168,140,0.3);
+  border-radius:22px 22px 0 0;
+  padding:0 16px calc(20px + env(safe-area-inset-bottom));
+  z-index:202;
+  box-shadow:0 -8px 40px rgba(0,0,0,0.75);
+  max-height:92dvh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(0.32,0.72,0,1);
+}
+#sp.open{transform:translateY(0)}
+
+/* === 同步操作按钮 === */
+.sync-btn{
+  width:100%;padding:15px;border-radius:14px;
+  font-size:16px;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  min-height:52px;border:1px solid;
+  transition:opacity .15s;
+}
+.sync-btn:active{opacity:0.75}
+.sync-export{background:rgba(91,168,140,0.12);border-color:rgba(91,168,140,0.3);color:#5BA88C}
+.sync-import{background:rgba(232,185,49,0.1);border-color:rgba(232,185,49,0.25);color:#E8B931}
+.sync-tip{
+  background:rgba(255,255,255,0.03);border-radius:10px;
+  padding:12px 14px;font-size:13px;
+  color:rgba(255,255,255,0.5);line-height:1.7;
+}
 </style>
 </head>
 <body>
@@ -265,10 +310,11 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 <!-- 顶部标题栏（含 Dynamic Island / 状态栏安全区）-->
 <div class="hd">
   <div class="lg">H&W</div>
-  <div>
+  <div style="flex:1">
     <div style="font-size:18px;font-weight:700">H&W 记账本</div>
     <div style="font-size:12px;color:rgba(255,255,255,0.6)">Amex积分 · 购物卡 · 消费管理</div>
   </div>
+  <button class="hd-sync" onclick="openSettings()" title="数据同步">☁️</button>
 </div>
 
 <!-- 内容视图 -->
@@ -282,10 +328,16 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 <button class="fab" id="fab" onclick="openForm()">+</button>
 
 <!-- 遮罩 -->
-<div class="bk" id="bk" onclick="closeForm()"></div>
+<div class="bk" id="bk" onclick="closeAll()"></div>
 
 <!-- 底部弹出表单 -->
 <div class="fp" id="fp"></div>
+
+<!-- 数据同步设置面板 -->
+<div id="sp"></div>
+
+<!-- 导入文件选择器（隐藏）-->
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
 
 <!-- 底部导航栏（iOS 原生风格，含 Home Indicator 安全区）-->
 <nav class="bn">
@@ -827,6 +879,146 @@ function subOE(){
   var n=document.getElementById("fN").value.trim();
   var oe=dG(ok(S.y,S.mo))||[];oe.push({id:gi(),day:d,amt:a,mth:S.fSt||"其他",note:n});
   oe.sort(function(a,b){return a.day-b.day});dS(ok(S.y,S.mo),oe);toast("✅ 已记账");closeForm();rO();
+}
+
+/* ═══════════════════════════════════
+   统一关闭遮罩（表单 & 设置面板共用一个遮罩）
+═══════════════════════════════════ */
+function closeAll(){closeForm();closeSettings()}
+
+/* ═══════════════════════════════════
+   设置 / 数据同步面板
+═══════════════════════════════════ */
+function openSettings(){
+  /* 统计当前数据量 */
+  var months=0,amexCount=0,otherCount=0;
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&/^hw-\d{4}-\d{2}$/.test(k)){months++;var m=dG(k);if(m)amexCount+=m.length}
+    if(k&&/^hw-o-\d{4}-\d{2}$/.test(k)){var o=dG(k);if(o)otherCount+=o.length}
+  }
+  var cards=lGC().length;
+  var lastExport=dG('hw-last-export');
+
+  var h='<div class="fp-handle"></div>';
+  h+='<div style="font-size:18px;font-weight:700;margin-bottom:4px">☁️ 数据备份 & 同步</div>';
+  h+='<div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:16px">数据保存在本设备，导出后可跨设备同步</div>';
+
+  /* 数据概览 */
+  h+='<div class="cd" style="padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;font-weight:500;letter-spacing:0.5px">当前设备数据</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">';
+  h+='<div style="padding:6px 0"><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+months+'</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">月份</div></div>';
+  h+='<div style="padding:6px 0;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06)"><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+(amexCount+otherCount)+'</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">交易记录</div></div>';
+  h+='<div style="padding:6px 0"><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#5BA88C">'+cards+'</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">购物卡</div></div>';
+  h+='</div>';
+  if(lastExport){h+='<div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:10px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px">上次导出：'+lastExport+'</div>'}
+  h+='</div>';
+
+  /* 导出 */
+  h+='<div style="margin-bottom:10px">';
+  h+='<button class="sync-btn sync-export" onclick="exportData()">📤 导出备份文件</button>';
+  h+='<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">导出为 JSON 文件，可保存到 iCloud Drive、发给对方或存微信</div>';
+  h+='</div>';
+
+  /* 导入 */
+  h+='<div style="margin-bottom:16px">';
+  h+='<button class="sync-btn sync-import" onclick="triggerImport()">📥 导入备份文件</button>';
+  h+='<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">⚠️ 导入会覆盖当前设备的全部数据，请先导出备份再导入</div>';
+  h+='</div>';
+
+  /* 使用提示 */
+  h+='<div class="sync-tip">';
+  h+='<div style="font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:6px">📋 同步步骤</div>';
+  h+='<div>① iPhone 上点「导出」→ 保存到「文件」App</div>';
+  h+='<div>② 通过 AirDrop / 微信 将 JSON 文件发到 Mac</div>';
+  h+='<div>③ Mac 打开网页 → 点「导入」→ 选择文件</div>';
+  h+='<div style="margin-top:6px;color:rgba(255,255,255,0.35)">反向操作同理，两端数据保持一致</div>';
+  h+='</div>';
+
+  document.getElementById('sp').innerHTML=h;
+  document.getElementById('bk').classList.add('open');
+  requestAnimationFrame(function(){document.getElementById('sp').classList.add('open')});
+}
+
+function closeSettings(){
+  document.getElementById('sp').classList.remove('open');
+  document.getElementById('bk').classList.remove('open');
+}
+
+/* ═══════════════════════════════════
+   导出：将所有 hw-* 键打包成 JSON 下载
+═══════════════════════════════════ */
+function exportData(){
+  var payload={version:2,exportTime:new Date().toISOString(),device:navigator.userAgent.indexOf('iPhone')>-1?'iPhone':'Mac',store:{}};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.startsWith('hw-'))payload.store[k]=dG(k);
+  }
+  var json=JSON.stringify(payload,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  var now=new Date();
+  a.download='HW记账-'+now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url)},1500);
+  /* 记录导出时间 */
+  var ts=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  dS('hw-last-export',ts);
+  toast('📤 备份文件已导出');
+  /* 刷新面板显示最新导出时间 */
+  setTimeout(openSettings,400);
+}
+
+/* ═══════════════════════════════════
+   导入：读取 JSON 文件，恢复所有数据
+═══════════════════════════════════ */
+function triggerImport(){document.getElementById('importFile').click()}
+
+function importData(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var payload=JSON.parse(e.target.result);
+      /* 兼容 version 1（无 store 包装）和 version 2 */
+      var store=payload.store||payload;
+      if(typeof store!=='object'||Array.isArray(store))throw new Error('格式错误');
+      var hwKeys=Object.keys(store).filter(function(k){return k.startsWith('hw-')});
+      if(!hwKeys.length)throw new Error('无有效数据');
+
+      /* 数据预览 */
+      var months=hwKeys.filter(function(k){return /^hw-\d{4}-\d{2}$/.test(k)}).length;
+      var cards=(store['hw-gc']||[]).length;
+      var exportTime=payload.exportTime?payload.exportTime.replace('T',' ').slice(0,16):'未知时间';
+      var device=payload.device||'未知设备';
+
+      customConfirm(
+        '导入来自 '+device+' 的备份\n导出时间：'+exportTime+'\n包含 '+months+' 个月份、'+cards+' 张购物卡\n\n⚠️ 将覆盖当前全部数据',
+        '确认导入'
+      ).then(function(ok){
+        if(!ok){input.value='';return}
+        /* 清除现有 hw-* 数据 */
+        var toRemove=[];
+        for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith('hw-'))toRemove.push(k)}
+        toRemove.forEach(function(k){localStorage.removeItem(k)});
+        /* 写入导入数据 */
+        hwKeys.forEach(function(k){dS(k,store[k])});
+        input.value='';
+        toast('✅ 导入成功！共 '+hwKeys.length+' 条数据');
+        closeSettings();
+        /* 刷新当前视图 */
+        S.en=[];S.dId=null;S.xId=null;S.fCat=null;S.cEx=null;
+        ldM();
+      });
+    }catch(err){
+      toast('❌ 文件格式错误，请选择正确的备份文件');
+      input.value='';
+    }
+  };
+  reader.readAsText(file,'utf-8');
 }
 
 /* ─── 启动 ─── */
