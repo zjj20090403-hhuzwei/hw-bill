@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="H&W 记账">
+<meta name="theme-color" content="#0C0E13">
+<title>H&W 记账本</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* === RESET & BASE === */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  background:#0C0E13;color:#E8E6E1;
+  font-family:'DM Sans','Noto Sans SC',sans-serif;
+  min-height:100%;min-height:100dvh;
+  /* 为底部导航 + home indicator 留出空间 */
+  padding-bottom:calc(60px + env(safe-area-inset-bottom) + 8px);
+  -webkit-font-smoothing:antialiased;color-scheme:dark;
+  overscroll-behavior-y:none;
+}
+/* 全局防止输入框触发 iOS 缩放：所有 input/select 至少 16px */
+input,select,textarea{font-size:16px;-webkit-appearance:none;appearance:none;color-scheme:dark}
+
+/* === CARD === */
+.cd{background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
+
+/* === HEADER（延伸至状态栏安全区）=== */
+.hd{
+  background:linear-gradient(160deg,#14161D 60%,#18141F);
+  border-bottom:1px solid rgba(232,185,49,0.12);
+  /* padding-top 包含 Dynamic Island / 刘海 高度 */
+  padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:80;
+}
+.lg{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,#E8B931,#D4A017);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#0D0F14;
+  font-family:'DM Mono',monospace;flex-shrink:0;
+}
+
+/* === 底部导航（iOS 原生风格）=== */
+.bn{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(58px + env(safe-area-inset-bottom));
+  background:rgba(10,12,17,0.92);
+  backdrop-filter:saturate(180%) blur(24px);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:flex-start;
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:90;
+}
+.bni{
+  flex:1;height:58px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+  border:none;background:none;cursor:pointer;
+  font-size:10px;font-weight:500;letter-spacing:0.1px;
+  color:rgba(255,255,255,0.38);
+  font-family:'DM Sans','Noto Sans SC',sans-serif;
+  transition:color .15s;padding:0;
+  -webkit-user-select:none;user-select:none;
+}
+.bni.on{color:#E8B931}
+.bni:active{opacity:0.65}
+.bni-icon{font-size:22px;line-height:1.2}
+
+/* === FAB（悬浮在底部导航上方）=== */
+.fab{
+  position:fixed;
+  right:20px;
+  bottom:calc(env(safe-area-inset-bottom) + 58px + 16px);
+  width:54px;height:54px;border-radius:27px;
+  background:linear-gradient(135deg,#E8B931,#D4A017);
+  color:#0D0F14;border:none;font-size:28px;font-weight:700;
+  cursor:pointer;
+  box-shadow:0 6px 24px rgba(232,185,49,0.45),0 2px 8px rgba(0,0,0,0.5);
+  display:flex;align-items:center;justify-content:center;
+  z-index:85;
+  -webkit-user-select:none;user-select:none;
+  transition:transform .12s ease;
+}
+.fab:active{transform:scale(0.88)}
+
+/* === 遮罩 === */
+.bk{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:199;display:none}
+.bk.open{display:block}
+
+/* === 底部弹出表单（Bottom Sheet）=== */
+.fp{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#14161D;
+  border-top:1px solid rgba(232,185,49,0.15);
+  border-radius:22px 22px 0 0;
+  padding:0 16px calc(20px + env(safe-area-inset-bottom));
+  z-index:200;
+  box-shadow:0 -8px 40px rgba(0,0,0,0.75);
+  max-height:92dvh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(0.32,0.72,0,1);
+}
+.fp.open{transform:translateY(0)}
+.fp-handle{
+  width:36px;height:5px;border-radius:3px;
+  background:rgba(255,255,255,0.16);
+  margin:14px auto 16px;
+}
+
+/* === 表单字段 === */
+.fl{display:block;font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:5px;font-weight:500}
+.fi{
+  width:100%;padding:12px;border-radius:10px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+  color:#E8E6E1;font-size:16px;
+  font-family:'DM Mono',monospace;outline:none;
+  -webkit-appearance:none;appearance:none;color-scheme:dark;
+  min-height:46px;
+}
+.fi:focus{border-color:#E8B931;background:rgba(255,255,255,0.07)}
+select.fi{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  padding-right:32px;font-family:'DM Sans',sans-serif;
+}
+.fcats{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
+.fcats::-webkit-scrollbar{display:none}
+.fcat{
+  flex-shrink:0;padding:8px 6px;border-radius:10px;
+  border:2px solid transparent;font-size:11px;font-weight:600;
+  cursor:pointer;text-align:center;
+  background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  font-family:'DM Sans',sans-serif;
+  min-height:58px;min-width:50px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.fstores{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fst{
+  padding:9px 14px;border-radius:20px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.03);
+  color:rgba(255,255,255,0.55);
+  font-size:14px;cursor:pointer;
+  font-family:'DM Sans','Noto Sans SC',sans-serif;
+  min-height:38px;
+  transition:all .15s;
+}
+.fst.on{border-color:#E8B931;background:rgba(232,185,49,0.1);color:#E8B931}
+.fpv{
+  display:none;justify-content:space-between;align-items:center;
+  background:rgba(232,185,49,0.06);border:1px solid rgba(232,185,49,0.15);
+  border-radius:10px;padding:10px 14px;margin-bottom:12px;
+}
+.fpv.show{display:flex}
+.fsub{
+  width:100%;padding:15px;border-radius:14px;
+  background:linear-gradient(135deg,#E8B931,#D4A017);
+  color:#0D0F14;border:none;font-size:17px;font-weight:700;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  -webkit-user-select:none;user-select:none;
+  transition:transform .12s;min-height:52px;
+}
+.fsub:active{transform:scale(0.97)}
+
+/* === 购物卡相关 === */
+.gcsb{
+  padding:10px 14px;border-radius:10px;
+  background:rgba(232,185,49,0.15);border:none;
+  color:#E8B931;font-size:15px;font-weight:600;
+  cursor:pointer;white-space:nowrap;min-height:46px;
+}
+.gcsi{
+  flex:1;padding:10px;border-radius:8px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+  color:#E8E6E1;font-size:16px;
+  font-family:'DM Mono',monospace;outline:none;
+  -webkit-appearance:none;appearance:none;
+  color-scheme:dark;min-height:46px;
+}
+.gcsi:focus{border-color:#E8B931}
+input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
+.gctbar{height:7px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;margin:6px 0 4px}
+.gctf{height:100%;border-radius:4px}
+.gcexp{margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px}
+.gcsl{max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.gcse{display:flex;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.65);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+
+/* === 交易条目 === */
+.txi{position:relative;overflow:hidden}
+.txm{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer;min-height:66px}
+.txic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.txsubs{padding:2px 14px 10px 64px}
+.txsub{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:15px;color:rgba(255,255,255,0.75)}
+.txsub:last-child{border-bottom:none}
+.txsd{width:5px;height:5px;border-radius:50%;background:#E8B931;flex-shrink:0}
+.dcb{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(232,93,74,0.06);border-top:1px solid rgba(232,93,74,0.12)}
+
+/* === 导航控件 === */
+.nv{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.nb{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.8);border-radius:10px;
+  padding:8px 18px;font-size:20px;cursor:pointer;font-weight:600;
+  min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;
+}
+.nb:active{background:rgba(255,255,255,0.1)}
+.mn{font-size:12px;color:rgba(255,255,255,0.75);font-family:'DM Mono',monospace}
+
+/* === Toast（位于安全区顶部以上）=== */
+.toast{
+  position:fixed;
+  top:calc(env(safe-area-inset-top) + 12px);
+  left:50%;transform:translateX(-50%) translateY(-10px);
+  background:#1E2028;color:#E8B931;
+  padding:10px 24px;border-radius:22px;
+  font-size:15px;font-weight:600;z-index:300;
+  border:1px solid rgba(232,185,49,0.2);
+  opacity:0;transition:all .25s;pointer-events:none;
+  white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* === 自定义确认弹窗（取代 iOS 原生 confirm()）=== */
+.cm-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:500;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.cm-overlay.show{opacity:1;pointer-events:all}
+.cm-dialog{
+  width:100%;background:#1C1E27;
+  border-radius:22px 22px 0 0;
+  padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(0.32,0.72,0,1);
+}
+.cm-overlay.show .cm-dialog{transform:translateY(0)}
+.cm-msg{font-size:17px;font-weight:600;text-align:center;margin-bottom:22px;color:#E8E6E1;line-height:1.5}
+.cm-btns{display:flex;flex-direction:column;gap:10px}
+.cm-ok{
+  width:100%;padding:15px;border-radius:14px;border:none;
+  font-size:17px;font-weight:600;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  background:#E85D4A;color:#fff;min-height:52px;
+}
+.cm-cancel{
+  width:100%;padding:15px;border-radius:14px;border:none;
+  font-size:17px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);min-height:52px;
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部标题栏（含 Dynamic Island / 状态栏安全区）-->
+<div class="hd">
+  <div class="lg">H&W</div>
+  <div>
+    <div style="font-size:18px;font-weight:700">H&W 记账本</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.6)">Amex积分 · 购物卡 · 消费管理</div>
+  </div>
+</div>
+
+<!-- 内容视图 -->
+<div id="v0"></div>
+<div id="v1" style="display:none"></div>
+<div id="v2" style="display:none"></div>
+<div id="v3" style="display:none"></div>
+<div id="v4" style="display:none"></div>
+
+<!-- 浮动添加按钮 -->
+<button class="fab" id="fab" onclick="openForm()">+</button>
+
+<!-- 遮罩 -->
+<div class="bk" id="bk" onclick="closeForm()"></div>
+
+<!-- 底部弹出表单 -->
+<div class="fp" id="fp"></div>
+
+<!-- 底部导航栏（iOS 原生风格，含 Home Indicator 安全区）-->
+<nav class="bn">
+  <button class="bni on" id="tb0" onclick="sTab(0)">
+    <span class="bni-icon">📅</span><span>月度</span>
+  </button>
+  <button class="bni" id="tb1" onclick="sTab(1)">
+    <span class="bni-icon">💳</span><span>购物卡</span>
+  </button>
+  <button class="bni" id="tb2" onclick="sTab(2)">
+    <span class="bni-icon">🧾</span><span>其他</span>
+  </button>
+  <button class="bni" id="tb3" onclick="sTab(3)">
+    <span class="bni-icon">✨</span><span>积分</span>
+  </button>
+  <button class="bni" id="tb4" onclick="sTab(4)">
+    <span class="bni-icon">📊</span><span>消费</span>
+  </button>
+</nav>
+
+<!-- 自定义删除确认弹窗 -->
+<div class="cm-overlay" id="cmOverlay">
+  <div class="cm-dialog">
+    <div class="cm-msg" id="cmMsg"></div>
+    <div class="cm-btns">
+      <button class="cm-ok" id="cmOk">确认删除</button>
+      <button class="cm-cancel" id="cmCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 提示 -->
+<div class="toast" id="tst"></div>
+
+<script>
+/* ─── 常量 / 初始状态 ─── */
+var LIM=2500,
+C={"5x":{l:"餐饮/超市",m:5,c:"#E8B931",e:"🛒"},"3x":{l:"流媒体",m:3,c:"#7B8CDE",e:"📺"},"2x":{l:"交通/旅行",m:2,c:"#5BA88C",e:"✈️"},"1x":{l:"其他Amex",m:1,c:"#C4A882",e:"💳"}},
+CK=["5x","3x","2x","1x"],
+MZ=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+ST={"5x":["Sobeys","Safeway","FreshCo","T&T大统华","餐饮","其他"],"3x":["Netflix","Spotify","Disney+","YouTube","Apple One","其他"],"2x":["加油","公交","Uber","机票","其他"],"1x":["Telus","保险","水电","Amazon","其他"],"other":["Wealthsimple","Debit卡","Visa","Mastercard","现金","其他"]},
+GT=["Prepaid Mastercard","Prepaid Visa","Esso 加油卡","Shell 加油卡","Apple Gift Card","Google Play","Netflix","Amazon","其他"],
+GTR=["Prepaid Mastercard","Prepaid Visa","Esso 加油卡","Shell 加油卡"];
+
+var td=new Date(),S={y:td.getFullYear(),mo:td.getMonth()+1,tab:0,en:[],eId:null,fC:"5x",dId:null,xId:null,fCat:null,fSt:null,fGC:[],cEx:null};
+
+function sk(y,m){return"hw-"+y+"-"+String(m).padStart(2,"0")}
+function ok(y,m){return"hw-o-"+y+"-"+String(m).padStart(2,"0")}
+function gi(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function fm(n){return"$"+n.toFixed(2)}
+function dG(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):null}catch(e){return null}}
+function dS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function gk(){return"hw-gc"}
+function lGC(){return dG(gk())||[]}
+function sGC(a){dS(gk(),a)}
+
+/* ─── Toast ─── */
+var tt;
+function toast(m){var e=document.getElementById("tst");e.textContent=m;e.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){e.classList.remove("show")},2200)}
+
+/* ─── 自定义确认弹窗（取代原生 confirm）─── */
+function customConfirm(msg,okLabel){
+  return new Promise(function(resolve){
+    document.getElementById('cmMsg').textContent=msg;
+    document.getElementById('cmOk').textContent=okLabel||"确认删除";
+    document.getElementById('cmOverlay').classList.add('show');
+    function done(v){document.getElementById('cmOverlay').classList.remove('show');resolve(v)}
+    document.getElementById('cmOk').onclick=function(){done(true)};
+    document.getElementById('cmCancel').onclick=function(){done(false)};
+  });
+}
+
+/* ─── PWA Manifest 注入 ─── */
+(function(){
+  var m={name:"H&W 记账本",short_name:"H&W 记账",description:"Amex积分 · 购物卡 · 消费管理",start_url:"./",display:"standalone",background_color:"#0C0E13",theme_color:"#0C0E13",orientation:"portrait"};
+  var l=document.createElement('link');l.rel='manifest';
+  l.href='data:application/json,'+encodeURIComponent(JSON.stringify(m));
+  document.head.appendChild(l);
+})();
+
+/* ─── 键盘弹出时自动滚动输入框到视图中（iOS Safari 特有问题）─── */
+document.addEventListener('focusin',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA'){
+    setTimeout(function(){
+      e.target.scrollIntoView({behavior:'smooth',block:'center'});
+    },350);
+  }
+});
+
+/* ─── 底部导航 Tab 切换 ─── */
+function sTab(t){
+  S.tab=t;S.fCat=null;S.xId=null;S.dId=null;S.cEx=null;
+  for(var i=0;i<5;i++){
+    document.getElementById("tb"+i).classList.toggle("on",t===i);
+    document.getElementById("v"+i).style.display=t===i?"":"none";
+  }
+  document.getElementById("fab").style.display=(t===0||t===2)?"":"none";
+  if(t===0)rM();
+  if(t===1)rC();
+  if(t===2)rO();
+  if(t===3)rPts();
+  if(t===4)rExp();
+}
+
+/* ─── SVG 环形进度 ─── */
+function ring(u,tot,sz){
+  sz=sz||90;var r=(sz-12)/2,ci=2*Math.PI*r,pct=Math.min(u/tot,1),off=ci*(1-pct),ov=u>tot,col=ov?"#E85D4A":pct>.85?"#E85D4A":"#E8B931",lb=ov?Math.round(u/tot*100)+"%":(pct*100).toFixed(0)+"%";
+  return'<svg width="'+sz+'" height="'+sz+'"><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+ci+'" stroke-dashoffset="'+off+'" transform="rotate(-90 '+sz/2+' '+sz/2+')" style="transition:all .5s"/><text x="'+sz/2+'" y="'+(sz/2+1)+'" text-anchor="middle" fill="'+(ov?"#E85D4A":"#fff")+'" font-size="'+(sz>80?18:14)+'" font-weight="700" font-family="DM Mono,monospace" dominant-baseline="central">'+lb+'</text></svg>';
+}
+
+/* ─── 初始数据（首次使用时植入演示数据）─── */
+function seed(){
+  if(dG("hw-seeded"))return;
+  dS("hw-seeded",1);
+  if(!dG(sk(2026,4))){dS(sk(2026,4),[
+    {id:gi(),day:5,amt:619.89,cat:"5x",note:"",store:"Sobeys",cards:[{type:"Prepaid Mastercard",denom:500,qty:1,cn:"3821"},{type:"Esso 加油卡",denom:100,qty:1,cn:"E-003"}]},
+    {id:gi(),day:5,amt:13.91,cat:"5x",note:"午餐",store:"餐饮",cards:[]},
+    {id:gi(),day:5,amt:178.72,cat:"5x",note:"买菜",store:"Safeway",cards:[]},
+    {id:gi(),day:5,amt:620.63,cat:"5x",note:"",store:"Sobeys",cards:[{type:"Prepaid Mastercard",denom:500,qty:1,cn:"7753"},{type:"Shell 加油卡",denom:100,qty:1,cn:"S-001"}]},
+    {id:gi(),day:7,amt:13.91,cat:"5x",note:"午餐",store:"餐饮",cards:[]},
+    {id:gi(),day:7,amt:55.35,cat:"5x",note:"买菜",store:"FreshCo",cards:[]},
+    {id:gi(),day:9,amt:55.35,cat:"5x",note:"买菜",store:"Sobeys",cards:[]},
+    {id:gi(),day:9,amt:4.44,cat:"5x",note:"咖啡",store:"餐饮",cards:[]},
+    {id:gi(),day:10,amt:505.99,cat:"5x",note:"",store:"Sobeys",cards:[{type:"Prepaid Mastercard",denom:150,qty:3,cn:""},{type:"Esso 加油卡",denom:50,qty:2,cn:""}]}
+  ])}
+  if(!dG(gk())){sGC([
+    {id:gi(),type:"Prepaid Mastercard",denom:500,cn:"3821",pd:"2026-04-05",bal:320.50,sp:179.50,log:[{d:"2026-04-06",a:179.50}]},
+    {id:gi(),type:"Prepaid Mastercard",denom:500,cn:"7753",pd:"2026-04-05",bal:500,sp:0,log:[]},
+    {id:gi(),type:"Esso 加油卡",denom:100,cn:"E-003",pd:"2026-04-05",bal:100,sp:0,log:[]},
+    {id:gi(),type:"Shell 加油卡",denom:100,cn:"S-001",pd:"2026-04-05",bal:65.30,sp:34.70,log:[{d:"2026-04-08",a:34.70}]}
+  ])}
+  if(!dG(ok(2026,4))){dS(ok(2026,4),[{id:gi(),day:3,amt:156.80,mth:"Debit卡",note:"Costco 大采购"},{id:gi(),day:8,amt:42.50,mth:"现金",note:"早市买菜"}])}
+}
+
+function ldM(){S.en=dG(sk(S.y,S.mo))||[];S.dId=null;S.xId=null;S.fCat=null;rM()}
+function svM(){dS(sk(S.y,S.mo),S.en)}
+
+/* ═══════════════════════════════════
+   月度明细视图
+═══════════════════════════════════ */
+function rM(){
+  var e=S.en,oe=dG(ok(S.y,S.mo))||[];
+  var f5=0;e.forEach(function(x){if(x.cat==="5x")f5+=x.amt});
+  var rem=Math.max(LIM-f5,0),over=f5>LIM;
+  var catT={};CK.forEach(function(k){var it=e.filter(function(x){return x.cat===k});var s=0,p=0;it.forEach(function(x){s+=x.amt;p+=Math.floor(x.amt*C[k].m)});catT[k]={s:s,p:p,n:it.length}});
+  var tS=0,tP=0;e.forEach(function(x){tS+=x.amt;tP+=Math.floor(x.amt*(C[x.cat]?C[x.cat].m:1))});
+  var oS=0;oe.forEach(function(x){oS+=x.amt});
+
+  var h='<div class="nv"><button class="nb" onclick="chM(-1)">‹</button><div style="text-align:center"><div style="font-size:24px;font-weight:700"><span style="color:#E8B931;font-family:DM Mono,monospace">'+S.y+'</span><span style="color:rgba(255,255,255,0.4);margin:0 5px">·</span>'+MZ[S.mo-1]+'</div></div><button class="nb" onclick="chM(1)">›</button></div>';
+
+  /* 三项汇总 */
+  h+='<div style="display:flex;gap:8px;padding:6px 16px"><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">Amex消费</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace">'+fm(tS)+'</div></div><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">积分</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+tP.toLocaleString()+'</div></div><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">其他支出</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#4ECB71">'+fm(oS)+'</div></div></div>';
+
+  /* 分区统计 */
+  h+='<div style="padding:6px 16px 10px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">分区统计 <span style="font-size:12px;font-weight:400">点击筛选</span></div>';
+
+  /* 5x 全宽卡片 */
+  var t5=catT["5x"],is5A=S.fCat==="5x",rc5=over?"#E85D4A":"#E8B931";
+  h+='<div class="cd" onclick="tgF(\'5x\')" style="padding:14px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;gap:14px;'+(is5A?'border-color:#E8B93140;background:rgba(255,255,255,0.06)':'')+'"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:18px">🛒</span><span style="font-size:16px;font-weight:700;color:#E8B931">5X</span><span style="font-size:13px;color:rgba(255,255,255,0.55)">餐饮/超市</span></div><div style="display:flex;gap:16px;align-items:baseline;margin-bottom:6px"><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace">'+fm(t5.s)+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">'+t5.n+'笔</div></div><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+t5.p.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">积分</div></div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:rgba(255,255,255,0.55)">'+(over?'超额':'剩余')+'</span><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:'+rc5+'">'+fm(over?f5-LIM:rem)+'</span><span style="font-size:11px;color:rgba(255,255,255,0.6)">/ 月限$2,500</span></div></div><div style="flex-shrink:0">'+ring(f5,LIM,80)+'</div></div>';
+
+  /* 3x / 2x / 1x */
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">';
+  ["3x","2x","1x"].forEach(function(k){
+    var v=C[k],t=catT[k],isA=S.fCat===k;
+    h+='<div class="cd" onclick="tgF(\''+k+'\')" style="padding:12px;cursor:pointer;'+(isA?'border-color:'+v.c+'40;background:rgba(255,255,255,0.06)':'')+'"><div style="display:flex;align-items:center;gap:5px;margin-bottom:6px"><span style="font-size:16px">'+v.e+'</span><span style="font-size:15px;font-weight:700;color:'+v.c+'">'+k.toUpperCase()+'</span></div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:8px">'+v.l+'</div><div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;margin-bottom:2px">'+fm(t.s)+'</div><div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+v.c+'">'+t.p.toLocaleString()+' <span style="font-size:11px;font-weight:400;color:rgba(255,255,255,0.7)">pts</span></div><div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">'+t.n+'笔 · 无上限</div></div>';
+  });
+  h+='</div>';
+
+  /* 其他支出行 */
+  var isOA=S.fCat==="other";
+  h+='<div class="cd" onclick="tgF(\'other\')" style="padding:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;'+(isOA?'border-color:#4ECB7140;background:rgba(255,255,255,0.06)':'')+'"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">🧾</span><span style="font-size:16px;font-weight:700;color:#4ECB71">其他支出</span></div><div style="display:flex;gap:16px;align-items:baseline"><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace">'+fm(oS)+'</span><span style="font-size:12px;color:rgba(255,255,255,0.7)">'+oe.length+'笔</span></div></div>';
+  h+='</div>';
+
+  /* 明细列表 */
+  var isOther=S.fCat==="other",allItems=[];
+  if(!S.fCat){e.forEach(function(x){allItems.push({t:"amex",d:x})});oe.forEach(function(x){allItems.push({t:"other",d:x})})}
+  else if(isOther){oe.forEach(function(x){allItems.push({t:"other",d:x})})}
+  else{e.filter(function(x){return x.cat===S.fCat}).forEach(function(x){allItems.push({t:"amex",d:x})})}
+  allItems.sort(function(a,b){return(b.d.day||0)-(a.d.day||0)});
+
+  if(S.fCat){var fLabel=isOther?'🧾 其他支出':(C[S.fCat].e+' '+S.fCat.toUpperCase());
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px;margin-bottom:8px"><span style="font-size:15px;font-weight:600;color:'+(isOther?'#4ECB71':C[S.fCat].c)+'">'+fLabel+' ('+allItems.length+'笔)</span><button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif;min-height:36px" onclick="tgF(null)">✕ 清除</button></div>'}
+  else{h+='<div style="display:flex;justify-content:space-between;padding:0 16px;margin-bottom:8px"><div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.7)">交易明细</div><div style="font-size:14px;color:rgba(255,255,255,0.7)">'+(e.length+oe.length)+'笔</div></div>'}
+
+  if(!allItems.length){h+='<div style="text-align:center;padding:40px 0;background:rgba(255,255,255,0.02);border-radius:12px;border:1px dashed rgba(255,255,255,0.08);margin:0 16px"><div style="font-size:32px;margin-bottom:8px">'+(S.fCat?'🔍':'📒')+'</div><div style="font-size:15px;color:rgba(255,255,255,0.55)">暂无记录</div></div>'}
+  else{h+='<div style="display:flex;flex-direction:column;gap:6px;padding:0 16px">';allItems.forEach(function(item){
+    var x=item.d,isAmex=item.t==="amex";
+    if(isAmex){
+      var cv=C[x.cat]||C["1x"],pts=Math.floor(x.amt*cv.m),isE=S.xId===x.id,isD=S.dId===x.id;
+      var hasSubs=x.cards&&x.cards.length>0;
+      var nd=x.store||"";if(x.note&&x.note!==x.store)nd+=(nd?" · ":"")+x.note;if(!nd)nd=cv.l;
+      h+='<div class="cd txi"><div class="txm" onclick="tgX(\''+x.id+'\')"><div class="txic" style="background:'+cv.c+'15">'+cv.e+'</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:18px;font-weight:700;font-family:DM Mono,monospace">'+fm(x.amt)+'</span><span style="font-size:12px;font-weight:700;padding:2px 6px;border-radius:3px;color:'+cv.c+';background:'+cv.c+'18">'+x.cat.toUpperCase()+'</span></div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">'+S.mo+'月'+x.day+'日 · '+nd+'</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:'+cv.c+'">+'+pts+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">pts</div></div></div>';
+      if(hasSubs){h+='<div class="txsubs">';x.cards.forEach(function(cd){h+='<div class="txsub"><span class="txsd"></span><span style="flex:1">'+cd.type+(cd.cn?' <span style="color:rgba(255,255,255,0.7)">#'+cd.cn+'</span>':'')+'</span><span style="font-family:DM Mono,monospace;color:#E8B931">'+fm(cd.denom)+' ×'+cd.qty+'</span></div>'});h+='</div>'}
+      if(isE&&!isD){h+='<div style="display:flex;gap:8px;padding:0 14px 12px 62px"><button style="background:rgba(232,185,49,0.15);color:#E8B931;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="editE(\''+x.id+'\')">✏️ 编辑</button><button style="background:rgba(232,93,74,0.12);color:#E85D4A;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="tgD(\''+x.id+'\')">🗑️ 删除</button></div>'}
+      if(isD){h+='<div class="dcb"><span style="font-size:15px;color:rgba(255,255,255,0.7);flex:1">确认删除？</span><button style="background:#E85D4A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="delE(\''+x.id+'\')">删除</button><button style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:none;border-radius:8px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px" onclick="tgD(null)">取消</button></div>'}
+      h+='</div>';
+    } else {
+      var isE=S.xId===x.id,isD=S.dId===x.id;
+      h+='<div class="cd txi"><div class="txm" onclick="tgX(\''+x.id+'\')"><div class="txic" style="background:rgba(78,203,113,0.15)">🧾</div><div style="flex:1"><div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace">'+fm(x.amt)+'</div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">'+S.mo+'月'+x.day+'日 · '+(x.mth||"")+(x.note?' · '+x.note:'')+'</div></div><div style="flex-shrink:0"><span style="font-size:12px;font-weight:600;padding:2px 6px;border-radius:3px;color:#4ECB71;background:rgba(78,203,113,0.15)">其他</span></div></div>';
+      if(isE&&!isD){h+='<div style="display:flex;gap:8px;padding:0 14px 12px 62px"><button style="background:rgba(232,185,49,0.15);color:#E8B931;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="editOE(\''+x.id+'\')">✏️ 编辑</button><button style="background:rgba(232,93,74,0.12);color:#E85D4A;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="tgDO(\''+x.id+'\')">🗑️ 删除</button></div>'}
+      if(isD){h+='<div class="dcb"><span style="font-size:15px;color:rgba(255,255,255,0.7);flex:1">确认删除？</span><button style="background:#E85D4A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="delOE(\''+x.id+'\')">删除</button><button style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:none;border-radius:8px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px" onclick="tgDO(null)">取消</button></div>'}
+      h+='</div>';
+    }
+  });h+='</div>'}
+  document.getElementById("v0").innerHTML=h;
+}
+
+/* ═══════════════════════════════════
+   购物卡管理视图
+═══════════════════════════════════ */
+function rC(){
+  var cs=lGC(),byT={};
+  cs.forEach(function(c){if(!byT[c.type])byT[c.type]=[];byT[c.type].push(c)});
+  Object.keys(byT).forEach(function(t){byT[t].sort(function(a,b){return(b.pd||"").localeCompare(a.pd||"")})});
+  var h='<div style="padding:14px 16px 6px"><span style="font-size:22px;font-weight:700">📦 购物卡管理</span></div>';
+  if(!cs.length){h+='<div style="text-align:center;padding:48px 0;margin:0 16px;background:rgba(255,255,255,0.02);border-radius:12px;border:1px dashed rgba(255,255,255,0.08)"><div style="font-size:32px;margin-bottom:8px">💳</div><div style="font-size:15px;color:rgba(255,255,255,0.55)">在「月度明细」记账时添加购物卡</div></div>';document.getElementById("v1").innerHTML=h;return}
+  var tB=0,tSp=0;cs.forEach(function(c){tB+=c.bal;tSp+=c.sp});
+  h+='<div style="padding:6px 16px"><div class="cd" style="padding:14px;display:flex;justify-content:space-between"><div><div style="font-size:14px;color:rgba(255,255,255,0.6)">总余额</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#5BA88C">'+fm(tB)+'</div></div><div style="text-align:right"><div style="font-size:14px;color:rgba(255,255,255,0.6)">已消费</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65)">'+fm(tSp)+'</div></div></div></div>';
+  h+='<div style="padding:8px 16px">';
+  Object.keys(byT).forEach(function(tp){
+    var list=byT[tp],tpB=0;list.forEach(function(c){tpB+=c.bal});
+    h+='<div style="margin-bottom:14px"><div style="font-size:16px;font-weight:600;color:#E8B931;margin-bottom:8px;display:flex;justify-content:space-between"><span>'+tp+' ('+list.length+'张)</span><span style="font-family:DM Mono,monospace">余额 '+fm(tpB)+'</span></div>';
+    list.forEach(function(c){
+      var pct=c.denom>0?((c.denom-c.bal)/c.denom*100):0,isE=S.cEx===c.id;
+      var bc=c.bal<10?"#E85D4A":c.bal<c.denom*.3?"#E8B931":"#5BA88C";
+      h+='<div class="cd" style="padding:12px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:44px" onclick="tgCE(\''+c.id+'\')">';
+      h+='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💳</span>';
+      if(c.cn)h+='<span style="font-size:16px;font-weight:600">'+c.cn+'</span>';
+      h+='<span style="font-size:14px;color:rgba(255,255,255,0.55)">'+fm(c.denom)+'</span></div>';
+      h+='<span style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:'+bc+'">'+fm(c.bal)+'</span></div>';
+      h+='<div class="gctbar"><div class="gctf" style="width:'+pct+'%;background:'+bc+'"></div></div>';
+      h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,0.7)"><span>已用 '+fm(c.sp)+'</span><span>'+c.pd+'</span></div>';
+      if(isE){
+        h+='<div class="gcexp"><div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-end"><input class="gcsi" id="sa_'+c.id+'" type="number" step="0.01" placeholder="消费金额" inputmode="decimal"><input class="gcsi" id="sd_'+c.id+'" type="date" value="'+td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0')+'"><button class="gcsb" onclick="addSp(\''+c.id+'\')">记录</button></div>';
+        if(c.cn!==undefined){h+='<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center"><span style="font-size:13px;color:rgba(255,255,255,0.55)">卡号</span><input class="gcsi" id="cn_'+c.id+'" value="'+(c.cn||"")+'" placeholder="编号"><button class="gcsb" onclick="uCN(\''+c.id+'\')">保存</button></div>'}
+        if(c.log&&c.log.length){h+='<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:4px">消费记录</div><div class="gcsl">';c.log.slice().reverse().forEach(function(s){h+='<div class="gcse"><span>'+s.d+'</span><span style="font-family:DM Mono,monospace;color:#E85D4A">-'+fm(s.a)+'</span></div>'});h+='</div>'}
+        h+='<div style="margin-top:10px;text-align:right"><button style="background:rgba(232,93,74,0.1);color:#E85D4A;border:none;border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer;min-height:40px" onclick="delCc(\''+c.id+'\')">删除此卡</button></div></div>';
+      }
+      h+='</div>';
+    });h+='</div>'});
+  h+='</div>';
+  document.getElementById("v1").innerHTML=h;
+}
+function tgCE(id){S.cEx=(S.cEx===id)?null:id;rC()}
+function addSp(id){
+  var a=parseFloat(document.getElementById("sa_"+id).value);if(isNaN(a)||a<=0)return;
+  var dt=document.getElementById("sd_"+id).value;var cs=lGC();
+  var ok=true;cs.forEach(function(c){if(c.id===id){if(a>c.bal){toast("⚠️ 超出余额");ok=false;return}c.bal=Math.round((c.bal-a)*100)/100;c.sp=Math.round((c.sp+a)*100)/100;if(!c.log)c.log=[];c.log.push({d:dt,a:a})}});
+  if(ok){sGC(cs);toast("✅ 已记录");rC()}
+}
+function uCN(id){var v=document.getElementById("cn_"+id).value.trim();var cs=lGC();cs.forEach(function(c){if(c.id===id)c.cn=v});sGC(cs);toast("✅ 已更新");rC()}
+async function delCc(id){
+  var ok=await customConfirm("确认删除此卡？\n删除后消费记录将一并删除。","确认删除");
+  if(!ok)return;
+  sGC(lGC().filter(function(c){return c.id!==id}));S.cEx=null;toast("🗑️ 已删除");rC();
+}
+
+/* ═══════════════════════════════════
+   其他支出视图
+═══════════════════════════════════ */
+function rO(){
+  var oe=dG(ok(S.y,S.mo))||[],tO=0;oe.forEach(function(x){tO+=x.amt});
+  var h='<div class="nv"><button class="nb" onclick="chOM(-1)">‹</button><div style="text-align:center"><div style="font-size:24px;font-weight:700"><span style="color:#4ECB71;font-family:DM Mono,monospace">'+S.y+'</span><span style="color:rgba(255,255,255,0.4);margin:0 5px">·</span>'+MZ[S.mo-1]+'</div></div><button class="nb" onclick="chOM(1)">›</button></div>';
+  h+='<div style="padding:6px 16px"><div class="cd" style="padding:12px;display:flex;justify-content:space-between"><div><div style="font-size:14px;color:rgba(255,255,255,0.6)">本月其他支出</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace">'+fm(tO)+'</div></div><div style="font-size:14px;color:rgba(255,255,255,0.55)">'+oe.length+'笔</div></div></div>';
+  if(!oe.length){h+='<div style="text-align:center;padding:40px 0;background:rgba(255,255,255,0.02);border-radius:12px;border:1px dashed rgba(255,255,255,0.08);margin:0 16px"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-size:15px;color:rgba(255,255,255,0.55)">暂无记录</div></div>'}
+  else{h+='<div style="display:flex;flex-direction:column;gap:6px;padding:0 16px">';oe.slice().reverse().forEach(function(x){
+    var isE=S.xId===x.id,isD=S.dId===x.id;
+    h+='<div class="cd txi"><div class="txm" onclick="tgXO(\''+x.id+'\')" style="cursor:pointer"><div class="txic" style="background:rgba(78,203,113,0.15)">🧾</div><div style="flex:1"><div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace">'+fm(x.amt)+'</div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">'+S.mo+'月'+x.day+'日 · '+(x.mth||"")+(x.note?' · '+x.note:'')+'</div></div></div>';
+    if(isE&&!isD){h+='<div style="display:flex;gap:8px;padding:0 14px 12px 62px"><button style="background:rgba(232,185,49,0.15);color:#E8B931;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="editOE2(\''+x.id+'\')">✏️ 编辑</button><button style="background:rgba(232,93,74,0.12);color:#E85D4A;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="tgDO2(\''+x.id+'\')">🗑️ 删除</button></div>'}
+    if(isD){h+='<div class="dcb"><span style="font-size:15px;color:rgba(255,255,255,0.7);flex:1">确认删除？</span><button style="background:#E85D4A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px" onclick="delOE2(\''+x.id+'\')">删除</button><button style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:none;border-radius:8px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px" onclick="tgDO2(null)">取消</button></div>'}
+    h+='</div>'});h+='</div>'}
+  document.getElementById("v2").innerHTML=h;
+}
+function chOM(d){S.mo+=d;if(S.mo<1){S.mo=12;S.y--}if(S.mo>12){S.mo=1;S.y++}rO()}
+function tgXO(id){S.xId=(S.xId===id)?null:id;S.dId=null;rO()}
+function tgDO2(id){S.dId=(S.dId===id)?null:id;rO()}
+function delOE2(id){var oe=(dG(ok(S.y,S.mo))||[]).filter(function(x){return x.id!==id});dS(ok(S.y,S.mo),oe);S.dId=null;S.xId=null;toast("🗑️ 已删除");rO()}
+function editOE2(id){
+  var oe=dG(ok(S.y,S.mo))||[];var f;oe.forEach(function(x){if(x.id===id)f=x});if(!f)return;
+  S.eId=id;S.fC="other";S.fSt=f.mth||null;
+  var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700">编辑其他支出</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" value="'+f.amt+'" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+f.day+'" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<label class="fl">支付方式</label><div class="fstores" id="sCs"></div>';
+  h+='<div style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi" id="fN" value="'+(f.note||"").replace(/"/g,"&quot;")+'" placeholder="补充说明…" style="font-family:DM Sans,sans-serif"></div>';
+  h+='<button class="fsub" onclick="subOEEdit()">更新</button>';
+  document.getElementById("fp").innerHTML=h;
+  renderOEMethods();
+  document.getElementById("fab").style.display="none";document.getElementById("bk").classList.add("open");
+  requestAnimationFrame(function(){document.getElementById("fp").classList.add("open")});
+}
+function subOEEdit(){
+  var a=parseFloat(document.getElementById("fA").value);if(isNaN(a)||a<=0)return;
+  var mx=new Date(S.y,S.mo,0).getDate(),d=Math.max(1,Math.min(parseInt(document.getElementById("fD").value)||1,mx));
+  var n=document.getElementById("fN").value.trim();
+  var oe=dG(ok(S.y,S.mo))||[];
+  oe=oe.map(function(x){if(x.id===S.eId)return{id:x.id,day:d,amt:a,mth:S.fSt||"其他",note:n};return x});
+  oe.sort(function(a,b){return a.day-b.day});dS(ok(S.y,S.mo),oe);
+  S.xId=null;S.eId=null;toast("✏️ 已更新");closeForm();rO();
+}
+
+/* ═══════════════════════════════════
+   积分汇总视图
+═══════════════════════════════════ */
+function rPts(){
+  var yC={};CK.forEach(function(k){yC[k]={s:0,p:0,n:0}});var yS=0,yP=0,mSm=[];
+  for(var m=1;m<=12;m++){var it=dG(sk(S.y,m))||[];var ms=0,mp=0,mc={};CK.forEach(function(k){mc[k]={s:0,p:0}});it.forEach(function(x){var ml=C[x.cat]?C[x.cat].m:1;var p=Math.floor(x.amt*ml);mc[x.cat].s+=x.amt;mc[x.cat].p+=p;yC[x.cat].s+=x.amt;yC[x.cat].p+=p;yC[x.cat].n++;ms+=x.amt;mp+=p});yS+=ms;yP+=mp;mSm.push({mo:m,s:ms,p:mp,n:it.length,c:mc,en:it})}
+
+  var h='<div class="nv"><button class="nb" onclick="S.y--;rPts()">‹</button><span style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+S.y+' 积分汇总</span><button class="nb" onclick="S.y++;rPts()">›</button></div>';
+  h+='<div class="cd" style="padding:16px;margin:6px 16px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><div><div style="font-size:13px;color:rgba(255,255,255,0.6)">Amex年度消费</div><div style="font-size:26px;font-weight:700;font-family:DM Mono,monospace">'+fm(yS)+'</div></div><div style="text-align:right"><div style="font-size:13px;color:rgba(255,255,255,0.6)">年度累计积分</div><div style="font-size:26px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+yP.toLocaleString()+'</div></div></div>';
+  CK.forEach(function(k){var v=C[k],t=yC[k],pct=yP>0?(t.p/yP*100):0;h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:15px;font-weight:600;color:'+v.c+'">'+v.e+' '+k.toUpperCase()+' '+v.l+'</span><span style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:'+v.c+'">'+t.p.toLocaleString()+' pts</span></div><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:7px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+v.c+';border-radius:4px"></div></div><span style="font-size:13px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;min-width:60px;text-align:right">'+fm(t.s)+'</span></div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px">'+t.n+'笔</div></div>'});
+
+  var allGC=[];mSm.forEach(function(ms){ms.en.forEach(function(x){if(x.cards)x.cards.forEach(function(c){allGC.push(c)})})});
+  if(allGC.length){var gs={};allGC.forEach(function(c){if(!gs[c.type])gs[c.type]={q:0,t:0};gs[c.type].q+=c.qty;gs[c.type].t+=c.denom*c.qty});
+    h+='<div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">📦 购物卡购买汇总</div>';
+    Object.keys(gs).forEach(function(tp){var s=gs[tp];h+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)"><span style="font-size:15px;color:#E8B931">'+tp+'</span><span style="font-size:15px;font-family:DM Mono,monospace;color:#E8B931">'+s.q+'张 '+fm(s.t)+'</span></div>'});
+    h+='</div>'}
+  h+='</div>';
+
+  h+='<div style="padding:8px 16px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">各月积分</div>';
+  mSm.forEach(function(ms){if(!ms.n){h+='<div class="cd" style="padding:10px 12px;display:flex;justify-content:space-between;opacity:.3;margin-bottom:5px"><span style="font-size:16px;font-weight:600">'+MZ[ms.mo-1]+'</span><span>—</span></div>'}else{var tags='';CK.forEach(function(k){var mc=ms.c[k];if(mc.s>0)tags+='<span style="font-size:12px;padding:3px 7px;border-radius:4px;font-family:DM Mono,monospace;color:'+C[k].c+';background:'+C[k].c+'12">'+k+' '+mc.p.toLocaleString()+'pts</span>'});h+='<div class="cd" style="padding:12px;margin-bottom:5px;cursor:pointer;min-height:44px" onclick="S.mo='+ms.mo+';sTab(0)"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:17px;font-weight:700">'+MZ[ms.mo-1]+'</span><div style="display:flex;gap:10px"><span style="font-size:14px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65)">'+fm(ms.s)+'</span><span style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+ms.p.toLocaleString()+'pts</span></div></div><div style="display:flex;gap:4px;flex-wrap:wrap">'+tags+'</div></div>'}});
+  h+='</div>';
+  document.getElementById("v3").innerHTML=h;
+}
+
+/* ═══════════════════════════════════
+   消费汇总视图
+═══════════════════════════════════ */
+function rExp(){
+  var cs=lGC(),mData=[];
+  for(var m=1;m<=12;m++){
+    var entries=dG(sk(S.y,m))||[],oe=dG(ok(S.y,m))||[],oT=0;oe.forEach(function(x){oT+=x.amt});
+    var amex13=0;entries.forEach(function(x){if(x.cat!=="5x")amex13+=x.amt});
+    var amex5net=0;entries.forEach(function(x){if(x.cat==="5x"){var gcTotal=0;if(x.cards)x.cards.forEach(function(cd){gcTotal+=cd.denom*cd.qty});amex5net+=Math.max(x.amt-gcTotal,0)}});
+    var cT=0,moStr=S.y+"-"+String(m).padStart(2,"0");
+    cs.forEach(function(c){if(c.log)c.log.forEach(function(l){if(l.d&&l.d.startsWith(moStr))cT+=l.a})});
+    mData.push({mo:m,amex13:amex13,amex5net:amex5net,cardSpend:cT,otherSpend:oT,total:amex13+amex5net+cT+oT});
+  }
+  var yA13=0,yA5n=0,yCard=0,yOther=0;
+  mData.forEach(function(d){yA13+=d.amex13;yA5n+=d.amex5net;yCard+=d.cardSpend;yOther+=d.otherSpend});
+  var yTotal=yA13+yA5n+yCard+yOther;
+
+  var h='<div class="nv"><button class="nb" onclick="S.y--;rExp()">‹</button><span style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#5BA88C">'+S.y+' 消费汇总</span><button class="nb" onclick="S.y++;rExp()">›</button></div>';
+  h+='<div class="cd" style="padding:16px;margin:6px 16px"><div style="margin-bottom:12px"><div style="font-size:13px;color:rgba(255,255,255,0.6)">年度实际消费</div><div style="font-size:28px;font-weight:700;font-family:DM Mono,monospace;color:#5BA88C">'+fm(yTotal)+'</div></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><div style="font-size:12px;color:rgba(255,255,255,0.55)">1-3倍区直接消费</div><div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace">'+fm(yA13)+'</div></div><div><div style="font-size:12px;color:rgba(255,255,255,0.55)">5倍区非购物卡</div><div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace">'+fm(yA5n)+'</div></div><div><div style="font-size:12px;color:#E8B931">购物卡实际消费</div><div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+fm(yCard)+'</div></div><div><div style="font-size:12px;color:#4ECB71">其他支出</div><div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:#4ECB71">'+fm(yOther)+'</div></div></div></div>';
+  h+='<div style="padding:6px 16px"><div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.5">公式：实际消费 = 1-3倍区 +（5倍区 - 购物卡购买额）+ 购物卡实际消费 + 其他支出</div></div>';
+  h+='<div style="padding:4px 16px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">各月实际消费</div>';
+  var maxT=Math.max.apply(null,mData.map(function(d){return d.total}))||1;
+  mData.forEach(function(d){
+    var pct=d.total/maxT*100;
+    h+='<div class="cd" style="padding:12px;margin-bottom:5px'+(d.total===0?';opacity:.3':'')+'"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:17px;font-weight:700">'+MZ[d.mo-1]+'</span><span style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:#5BA88C">'+fm(d.total)+'</span></div>';
+    if(d.total>0){
+      h+='<div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;margin-bottom:6px"><div style="display:flex;height:100%">';
+      [{v:d.amex13+d.amex5net,c:"#7B8CDE"},{v:d.cardSpend,c:"#E8B931"},{v:d.otherSpend,c:"#4ECB71"}].forEach(function(p){if(p.v>0)h+='<div style="width:'+(p.v/d.total*pct)+'%;background:'+p.c+'"></div>'});
+      h+='</div></div><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px">';
+      if(d.amex13+d.amex5net>0)h+='<span style="color:#7B8CDE">Amex直接 '+fm(d.amex13+d.amex5net)+'</span>';
+      if(d.cardSpend>0)h+='<span style="color:#E8B931">购物卡 '+fm(d.cardSpend)+'</span>';
+      if(d.otherSpend>0)h+='<span style="color:#4ECB71">其他 '+fm(d.otherSpend)+'</span>';
+      h+='</div>';
+    }
+    h+='</div>'});
+  h+='</div>';
+  document.getElementById("v4").innerHTML=h;
+}
+
+/* ═══════════════════════════════════
+   导航辅助函数
+═══════════════════════════════════ */
+function chM(d){S.mo+=d;if(S.mo<1){S.mo=12;S.y--}if(S.mo>12){S.mo=1;S.y++}closeForm();ldM()}
+function tgX(id){S.xId=(S.xId===id)?null:id;S.dId=null;rM()}
+function tgF(k){S.fCat=(S.fCat===k)?null:k;S.xId=null;S.dId=null;rM()}
+function tgD(id){S.dId=(S.dId===id)?null:id;rM()}
+function tgDO(id){S.dId=(S.dId===id)?null:id;rM()}
+function delE(id){S.en=S.en.filter(function(x){return x.id!==id});svM();S.dId=null;S.xId=null;toast("🗑️ 已删除");rM()}
+function delOE(id){var oe=(dG(ok(S.y,S.mo))||[]).filter(function(x){return x.id!==id});dS(ok(S.y,S.mo),oe);S.dId=null;S.xId=null;toast("🗑️ 已删除");rM()}
+
+function editOE(id){
+  var oe=dG(ok(S.y,S.mo))||[];var f;oe.forEach(function(x){if(x.id===id)f=x});if(!f)return;
+  S.eId=id;S.fC="other";S.fSt=f.mth||null;
+  var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700">编辑其他支出</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" value="'+f.amt+'" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+f.day+'" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<label class="fl">支付方式</label><div class="fstores" id="sCs"></div>';
+  h+='<div style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi" id="fN" value="'+(f.note||"").replace(/"/g,"&quot;")+'" placeholder="补充说明…" style="font-family:DM Sans,sans-serif"></div>';
+  h+='<button class="fsub" onclick="subOEEditM()">更新</button>';
+  document.getElementById("fp").innerHTML=h;
+  renderOEMethods();
+  document.getElementById("fab").style.display="none";document.getElementById("bk").classList.add("open");
+  requestAnimationFrame(function(){document.getElementById("fp").classList.add("open")});
+}
+function subOEEditM(){
+  var a=parseFloat(document.getElementById("fA").value);if(isNaN(a)||a<=0)return;
+  var mx=new Date(S.y,S.mo,0).getDate(),d=Math.max(1,Math.min(parseInt(document.getElementById("fD").value)||1,mx));
+  var n=document.getElementById("fN").value.trim();
+  var oe=dG(ok(S.y,S.mo))||[];
+  oe=oe.map(function(x){if(x.id===S.eId)return{id:x.id,day:d,amt:a,mth:S.fSt||"其他",note:n};return x});
+  oe.sort(function(a,b){return a.day-b.day});dS(ok(S.y,S.mo),oe);
+  S.xId=null;S.eId=null;toast("✏️ 已更新");closeForm();rM();
+}
+
+/* ═══════════════════════════════════
+   记账表单
+═══════════════════════════════════ */
+function openForm(){
+  if(S.tab===2){openOE();return}
+  S.eId=null;S.fC="5x";S.fSt=null;S.fGC=[];
+  var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700" id="fT2">记账</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" placeholder="0.00" oninput="uPv()" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl" id="fDL">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+Math.min(td.getDate(),new Date(S.y,S.mo,0).getDate())+'" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<label class="fl">类别</label><div class="fcats" id="cBs"></div>';
+  h+='<label class="fl">商家</label><div class="fstores" id="sCs"></div>';
+  h+='<div id="gcS2"></div>';
+  h+='<div style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi" id="fN" placeholder="补充说明…" style="font-family:DM Sans,sans-serif"></div>';
+  h+='<div class="fpv" id="fPv"><span style="font-size:14px;color:rgba(255,255,255,0.6)" id="pvL"></span><span style="font-size:18px;font-weight:700;font-family:DM Mono,monospace" id="pvP"></span></div>';
+  h+='<button class="fsub" id="fSb" onclick="subForm()">确认记账</button>';
+  document.getElementById("fp").innerHTML=h;
+  rCB();rSC();rGS2();uPv();
+  document.getElementById("fab").style.display="none";document.getElementById("bk").classList.add("open");
+  requestAnimationFrame(function(){document.getElementById("fp").classList.add("open")});
+  setTimeout(function(){document.getElementById("fA").focus()},380);
+}
+
+function editE(id){
+  var f;S.en.forEach(function(x){if(x.id===id)f=x});if(!f)return;
+  S.eId=id;S.fC=f.cat;S.fSt=f.store||null;S.fGC=(f.cards||[]).map(function(c){return{type:c.type,denom:c.denom,qty:c.qty,cn:c.cn||""}});
+  var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700" id="fT2">编辑记录</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" placeholder="0.00" oninput="uPv()" value="'+f.amt+'" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl" id="fDL">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+f.day+'" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<label class="fl">类别</label><div class="fcats" id="cBs"></div>';
+  h+='<label class="fl">商家</label><div class="fstores" id="sCs"></div>';
+  h+='<div id="gcS2"></div>';
+  h+='<div style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi" id="fN" placeholder="补充说明…" style="font-family:DM Sans,sans-serif" value="'+(f.note||"").replace(/"/g,"&quot;")+'"></div>';
+  h+='<div class="fpv" id="fPv"><span style="font-size:14px;color:rgba(255,255,255,0.6)" id="pvL"></span><span style="font-size:18px;font-weight:700;font-family:DM Mono,monospace" id="pvP"></span></div>';
+  h+='<button class="fsub" id="fSb" onclick="subForm()">更新</button>';
+  document.getElementById("fp").innerHTML=h;
+  rCB();rSC();rGS2();uPv();
+  document.getElementById("fab").style.display="none";document.getElementById("bk").classList.add("open");
+  requestAnimationFrame(function(){document.getElementById("fp").classList.add("open")});
+}
+
+function closeForm(){
+  document.getElementById("fp").classList.remove("open");
+  document.getElementById("bk").classList.remove("open");
+  if(S.tab===0||S.tab===2)document.getElementById("fab").style.display="";
+  S.eId=null;
+}
+
+function rCB(){
+  var h='',allCats=CK.concat(["other"]);
+  allCats.forEach(function(k){
+    var isOther=k==="other",v=isOther?{e:"🧾",c:"#4ECB71"}:C[k],on=S.fC===k;
+    h+='<button class="fcat" style="'+(on?'background:'+v.c+'20;border-color:'+v.c+';color:'+v.c:'')+'" onclick="sC(\''+k+'\')"><span style="font-size:18px;display:block;margin-bottom:2px">'+v.e+'</span>'+(isOther?'其他':k)+'</button>';
+  });
+  document.getElementById("cBs").innerHTML=h;
+}
+function sC(k){S.fC=k;S.fSt=null;S.fGC=[];rCB();rSC();rGS2();uPv()}
+function rSC(){
+  var isOther=S.fC==="other",stores=isOther?ST.other:(ST[S.fC]||[]),h='';
+  stores.forEach(function(s){
+    var on=S.fSt===s;
+    h+='<button class="fst'+(on?' on':'')+'" onclick="pS(\''+s.replace(/'/g,"\\'")+'\')">'+s+'</button>';
+  });
+  document.getElementById("sCs").innerHTML=h;
+}
+function pS(s){S.fSt=(S.fSt===s)?null:s;rSC();rGS2()}
+
+function rGS2(){
+  var el=document.getElementById("gcS2");if(!el)return;
+  if(S.fC!=="5x"){el.style.display="none";el.innerHTML="";return}
+  el.style.display="block";
+  var h='<div style="margin-bottom:12px;padding:12px;background:rgba(232,185,49,0.04);border:1px solid rgba(232,185,49,0.1);border-radius:12px"><div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:8px;font-weight:500">🛍️ 购物卡明细 <span style="color:rgba(255,255,255,0.65)">(可选)</span></div>';
+  if(S.fGC.length){S.fGC.forEach(function(gc,i){
+    h+='<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:15px;font-weight:600;color:#E8B931">'+gc.type+'</span><button style="background:none;border:none;color:rgba(255,255,255,0.65);font-size:22px;cursor:pointer;min-width:36px;min-height:36px" onclick="rmGC('+i+')">×</button></div><div style="display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:4px">'+fm(gc.denom)+' × '+gc.qty+'</span><span style="font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:4px">小计 '+fm(gc.denom*gc.qty)+'</span>'+(gc.cn?'<span style="font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:4px">#'+gc.cn+'</span>':'')+'</div></div>'});
+    var gt=0;S.fGC.forEach(function(g){gt+=g.denom*g.qty});h+='<div style="font-size:14px;color:#E8B931;text-align:right;margin-bottom:8px">合计 '+fm(gt)+'</div>';}
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end"><div style="flex:2;min-width:90px"><label class="fl">类型</label><select class="fi" id="gT" style="font-family:DM Sans,sans-serif">';GT.forEach(function(t){h+='<option>'+t+'</option>'});h+='</select></div><div style="flex:1;min-width:55px"><label class="fl">面额</label><input type="number" class="fi" id="gD" placeholder="500" inputmode="decimal"></div><div style="flex:0.5;min-width:40px"><label class="fl">数量</label><input type="number" class="fi" id="gQ" value="1" min="1" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<div style="display:flex;gap:6px;margin-top:8px;align-items:flex-end"><div style="flex:1"><label class="fl">卡号 <span style="color:rgba(255,255,255,0.4)">可选</span></label><input type="text" class="fi" id="gN" placeholder="后四位或编号" style="font-family:DM Sans,sans-serif"></div><button class="gcsb" onclick="aGC()">+ 添加</button></div></div>';
+  el.innerHTML=h;
+}
+async function rmGC(i){
+  var ok=await customConfirm("确认移除此购物卡记录？","确认移除");
+  if(!ok)return;
+  S.fGC.splice(i,1);rGS2();
+}
+function aGC(){
+  var tp=document.getElementById("gT").value,dm=parseFloat(document.getElementById("gD").value);
+  if(isNaN(dm)||dm<=0){toast("请输入面额");return}
+  var qt=parseInt(document.getElementById("gQ").value)||1,cn=document.getElementById("gN").value.trim();
+  S.fGC.push({type:tp,denom:dm,qty:qt,cn:cn});
+  var cs=lGC();for(var i=0;i<qt;i++){cs.push({id:gi(),type:tp,denom:dm,cn:qt>1?(cn?cn+"-"+(i+1):""):cn,pd:S.y+"-"+String(S.mo).padStart(2,"0")+"-"+String(document.getElementById("fD").value).padStart(2,"0"),bal:dm,sp:0,log:[]})}sGC(cs);
+  rGS2();
+}
+function uPv(){
+  var el=document.getElementById("fPv");if(!el)return;
+  var v=parseFloat(document.getElementById("fA").value);
+  if(!v||isNaN(v)||v<=0||S.fC==="other"){el.classList.remove("show");return}
+  el.classList.add("show");var cv=C[S.fC];
+  document.getElementById("pvL").textContent="预计积分 ("+S.fC+")";
+  var p=document.getElementById("pvP");p.textContent="+"+Math.floor(v*cv.m);p.style.color=cv.c;
+}
+
+function subForm(){
+  var amt=parseFloat(document.getElementById("fA").value);if(isNaN(amt)||amt<=0)return;
+  var mx=new Date(S.y,S.mo,0).getDate(),day=Math.max(1,Math.min(parseInt(document.getElementById("fD").value)||1,mx));
+  var note=document.getElementById("fN").value.trim(),store=S.fSt,cards=S.fGC.slice();
+  if(S.fC==="other"){
+    var oe=dG(ok(S.y,S.mo))||[];
+    if(S.eId){oe=oe.map(function(x){if(x.id===S.eId)return{id:x.id,day:day,amt:amt,mth:store||"其他",note:note};return x});toast("✏️ 已更新")}
+    else{oe.push({id:gi(),day:day,amt:amt,mth:store||"其他",note:note});toast("✅ 已记账")}
+    oe.sort(function(a,b){return a.day-b.day});dS(ok(S.y,S.mo),oe);
+  } else {
+    if(S.eId){S.en=S.en.map(function(x){if(x.id===S.eId)return{id:x.id,day:day,amt:amt,cat:S.fC,note:note,store:store,cards:cards};return x});toast("✏️ 已更新")}
+    else{S.en.push({id:gi(),day:day,amt:amt,cat:S.fC,note:note,store:store,cards:cards});toast("✅ 已记账")}
+    S.en.sort(function(a,b){return a.day-b.day});svM();
+  }
+  closeForm();rM();
+}
+
+/* ─── 其他支出表单 ─── */
+function openOE(){
+  S.fC="other";S.fSt=null;S.fGC=[];S.eId=null;
+  var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700">记录其他支出</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" placeholder="0.00" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+Math.min(td.getDate(),new Date(S.y,S.mo,0).getDate())+'" style="text-align:center" inputmode="numeric"></div></div>';
+  h+='<label class="fl">支付方式</label><div class="fstores" id="sCs"></div>';
+  h+='<div style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi" id="fN" placeholder="补充说明…" style="font-family:DM Sans,sans-serif"></div>';
+  h+='<button class="fsub" onclick="subOE()">确认记账</button>';
+  document.getElementById("fp").innerHTML=h;
+  renderOEMethods();
+  document.getElementById("fab").style.display="none";document.getElementById("bk").classList.add("open");
+  requestAnimationFrame(function(){document.getElementById("fp").classList.add("open")});
+  setTimeout(function(){document.getElementById("fA").focus()},380);
+}
+function renderOEMethods(){
+  var h='';ST.other.forEach(function(s){
+    var on=S.fSt===s;
+    h+='<button class="fst'+(on?' on':'')+'" onclick="pickOEM(\''+s.replace(/'/g,"\\'")+'\')">'+s+'</button>';
+  });
+  document.getElementById("sCs").innerHTML=h;
+}
+function pickOEM(s){S.fSt=(S.fSt===s)?null:s;renderOEMethods()}
+function subOE(){
+  var a=parseFloat(document.getElementById("fA").value);if(isNaN(a)||a<=0)return;
+  var mx=new Date(S.y,S.mo,0).getDate(),d=Math.max(1,Math.min(parseInt(document.getElementById("fD").value)||1,mx));
+  var n=document.getElementById("fN").value.trim();
+  var oe=dG(ok(S.y,S.mo))||[];oe.push({id:gi(),day:d,amt:a,mth:S.fSt||"其他",note:n});
+  oe.sort(function(a,b){return a.day-b.day});dS(ok(S.y,S.mo),oe);toast("✅ 已记账");closeForm();rO();
+}
+
+/* ─── 启动 ─── */
+seed();ldM();
+</script>
+</body>
+</html>
