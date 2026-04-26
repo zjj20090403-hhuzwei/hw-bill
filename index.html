@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="H&W 记账">
+<meta name="apple-mobile-web-app-title" content="H&W 记账·Wei">
 <meta name="theme-color" content="#0C0E13">
-<title>H&W 记账本</title>
+<title>H&W 记账本·Wei</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* === RESET & BASE === */
@@ -17,22 +17,19 @@ body{
   background:#0C0E13;color:#E8E6E1;
   font-family:'DM Sans','Noto Sans SC',sans-serif;
   min-height:100%;min-height:100dvh;
-  /* 为底部导航 + home indicator 留出空间 */
   padding-bottom:calc(60px + env(safe-area-inset-bottom) + 8px);
   -webkit-font-smoothing:antialiased;color-scheme:dark;
   overscroll-behavior-y:none;
 }
-/* 全局防止输入框触发 iOS 缩放：所有 input/select 至少 16px */
 input,select,textarea{font-size:16px;-webkit-appearance:none;appearance:none;color-scheme:dark}
 
 /* === CARD === */
 .cd{background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
 
-/* === HEADER（延伸至状态栏安全区）=== */
+/* === HEADER === */
 .hd{
   background:linear-gradient(160deg,#14161D 60%,#18141F);
   border-bottom:1px solid rgba(232,185,49,0.12);
-  /* padding-top 包含 Dynamic Island / 刘海 高度 */
   padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
   display:flex;align-items:center;gap:10px;
   position:sticky;top:0;z-index:80;
@@ -45,7 +42,7 @@ input,select,textarea{font-size:16px;-webkit-appearance:none;appearance:none;col
   font-family:'DM Mono',monospace;flex-shrink:0;
 }
 
-/* === 底部导航（iOS 原生风格）=== */
+/* === 底部导航 === */
 .bn{
   position:fixed;bottom:0;left:0;right:0;
   height:calc(58px + env(safe-area-inset-bottom));
@@ -72,7 +69,7 @@ input,select,textarea{font-size:16px;-webkit-appearance:none;appearance:none;col
 .bni:active{opacity:0.65}
 .bni-icon{font-size:22px;line-height:1.2}
 
-/* === FAB（悬浮在底部导航上方）=== */
+/* === FAB === */
 .fab{
   position:fixed;
   right:20px;
@@ -93,7 +90,7 @@ input,select,textarea{font-size:16px;-webkit-appearance:none;appearance:none;col
 .bk{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:199;display:none}
 .bk.open{display:block}
 
-/* === 底部弹出表单（Bottom Sheet）=== */
+/* === 底部弹出表单 === */
 .fp{
   position:fixed;bottom:0;left:0;right:0;
   background:#14161D;
@@ -214,7 +211,7 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 .nb:active{background:rgba(255,255,255,0.1)}
 .mn{font-size:12px;color:rgba(255,255,255,0.75);font-family:'DM Mono',monospace}
 
-/* === Toast（位于安全区顶部以上）=== */
+/* === Toast === */
 .toast{
   position:fixed;
   top:calc(env(safe-area-inset-top) + 12px);
@@ -229,7 +226,7 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* === 自定义确认弹窗（取代 iOS 原生 confirm()）=== */
+/* === 自定义确认弹窗 === */
 .cm-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.6);
   z-index:500;display:flex;align-items:flex-end;
@@ -271,7 +268,7 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 }
 .hd-sync:active{background:rgba(255,255,255,0.12)}
 
-/* === 设置/同步面板（复用底部弹窗样式）=== */
+/* === 设置/同步面板 === */
 #sp{
   position:fixed;bottom:0;left:0;right:0;
   background:#14161D;
@@ -307,11 +304,11 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 </head>
 <body>
 
-<!-- 顶部标题栏（含 Dynamic Island / 状态栏安全区）-->
+<!-- 顶部标题栏 -->
 <div class="hd">
   <div class="lg">H&W</div>
   <div style="flex:1">
-    <div style="font-size:18px;font-weight:700">H&W 记账本</div>
+    <div style="font-size:18px;font-weight:700">H&W 记账本 · <span style="color:#E8B931">Wei</span></div>
     <div style="font-size:12px;color:rgba(255,255,255,0.6)">Amex积分 · 购物卡 · 消费管理</div>
   </div>
   <button class="hd-sync" onclick="openSettings()" title="数据同步">☁️</button>
@@ -336,10 +333,10 @@ input[type="date"].gcsi{font-family:'DM Sans',sans-serif;min-width:130px}
 <!-- 数据同步设置面板 -->
 <div id="sp"></div>
 
-<!-- 导入文件选择器（隐藏）-->
+<!-- 导入文件选择器 -->
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
 
-<!-- 底部导航栏（iOS 原生风格，含 Home Indicator 安全区）-->
+<!-- 底部导航栏 -->
 <nav class="bn">
   <button class="bni on" id="tb0" onclick="sTab(0)">
     <span class="bni-icon">📅</span><span>月度</span>
@@ -398,7 +395,7 @@ function sGC(a){dS(gk(),a)}
 var tt;
 function toast(m){var e=document.getElementById("tst");e.textContent=m;e.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){e.classList.remove("show")},2200)}
 
-/* ─── 自定义确认弹窗（取代原生 confirm）─── */
+/* ─── 自定义确认弹窗 ─── */
 function customConfirm(msg,okLabel){
   return new Promise(function(resolve){
     document.getElementById('cmMsg').textContent=msg;
@@ -410,15 +407,15 @@ function customConfirm(msg,okLabel){
   });
 }
 
-/* ─── PWA Manifest 注入 ─── */
+/* ─── PWA Manifest ─── */
 (function(){
-  var m={name:"H&W 记账本",short_name:"H&W 记账",description:"Amex积分 · 购物卡 · 消费管理",start_url:"./",display:"standalone",background_color:"#0C0E13",theme_color:"#0C0E13",orientation:"portrait"};
+  var m={name:"H&W 记账本·Wei",short_name:"H&W 记账·Wei",description:"Amex积分 · 购物卡 · 消费管理",start_url:"./",display:"standalone",background_color:"#0C0E13",theme_color:"#0C0E13",orientation:"portrait"};
   var l=document.createElement('link');l.rel='manifest';
   l.href='data:application/json,'+encodeURIComponent(JSON.stringify(m));
   document.head.appendChild(l);
 })();
 
-/* ─── 键盘弹出时自动滚动输入框到视图中（iOS Safari 特有问题）─── */
+/* ─── 键盘弹出滚动修正 ─── */
 document.addEventListener('focusin',function(e){
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA'){
     setTimeout(function(){
@@ -427,7 +424,7 @@ document.addEventListener('focusin',function(e){
   }
 });
 
-/* ─── 底部导航 Tab 切换 ─── */
+/* ─── Tab 切换 ─── */
 function sTab(t){
   S.tab=t;S.fCat=null;S.xId=null;S.dId=null;S.cEx=null;
   for(var i=0;i<5;i++){
@@ -448,7 +445,7 @@ function ring(u,tot,sz){
   return'<svg width="'+sz+'" height="'+sz+'"><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+ci+'" stroke-dashoffset="'+off+'" transform="rotate(-90 '+sz/2+' '+sz/2+')" style="transition:all .5s"/><text x="'+sz/2+'" y="'+(sz/2+1)+'" text-anchor="middle" fill="'+(ov?"#E85D4A":"#fff")+'" font-size="'+(sz>80?18:14)+'" font-weight="700" font-family="DM Mono,monospace" dominant-baseline="central">'+lb+'</text></svg>';
 }
 
-/* ─── 初始数据（首次使用时植入演示数据）─── */
+/* ─── 初始数据 ─── */
 function seed(){
   if(dG("hw-seeded"))return;
   dS("hw-seeded",1);
@@ -488,17 +485,13 @@ function rM(){
 
   var h='<div class="nv"><button class="nb" onclick="chM(-1)">‹</button><div style="text-align:center"><div style="font-size:24px;font-weight:700"><span style="color:#E8B931;font-family:DM Mono,monospace">'+S.y+'</span><span style="color:rgba(255,255,255,0.4);margin:0 5px">·</span>'+MZ[S.mo-1]+'</div></div><button class="nb" onclick="chM(1)">›</button></div>';
 
-  /* 三项汇总 */
   h+='<div style="display:flex;gap:8px;padding:6px 16px"><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">Amex消费</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace">'+fm(tS)+'</div></div><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">积分</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+tP.toLocaleString()+'</div></div><div class="cd" style="flex:1;padding:10px 12px"><div style="font-size:12px;color:rgba(255,255,255,0.6)">其他支出</div><div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#4ECB71">'+fm(oS)+'</div></div></div>';
 
-  /* 分区统计 */
   h+='<div style="padding:6px 16px 10px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">分区统计 <span style="font-size:12px;font-weight:400">点击筛选</span></div>';
 
-  /* 5x 全宽卡片 */
   var t5=catT["5x"],is5A=S.fCat==="5x",rc5=over?"#E85D4A":"#E8B931";
   h+='<div class="cd" onclick="tgF(\'5x\')" style="padding:14px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;gap:14px;'+(is5A?'border-color:#E8B93140;background:rgba(255,255,255,0.06)':'')+'"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:18px">🛒</span><span style="font-size:16px;font-weight:700;color:#E8B931">5X</span><span style="font-size:13px;color:rgba(255,255,255,0.55)">餐饮/超市</span></div><div style="display:flex;gap:16px;align-items:baseline;margin-bottom:6px"><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace">'+fm(t5.s)+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">'+t5.n+'笔</div></div><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+t5.p.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">积分</div></div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:rgba(255,255,255,0.55)">'+(over?'超额':'剩余')+'</span><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:'+rc5+'">'+fm(over?f5-LIM:rem)+'</span><span style="font-size:11px;color:rgba(255,255,255,0.6)">/ 月限$2,500</span></div></div><div style="flex-shrink:0">'+ring(f5,LIM,80)+'</div></div>';
 
-  /* 3x / 2x / 1x */
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">';
   ["3x","2x","1x"].forEach(function(k){
     var v=C[k],t=catT[k],isA=S.fCat===k;
@@ -506,12 +499,10 @@ function rM(){
   });
   h+='</div>';
 
-  /* 其他支出行 */
   var isOA=S.fCat==="other";
   h+='<div class="cd" onclick="tgF(\'other\')" style="padding:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;'+(isOA?'border-color:#4ECB7140;background:rgba(255,255,255,0.06)':'')+'"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">🧾</span><span style="font-size:16px;font-weight:700;color:#4ECB71">其他支出</span></div><div style="display:flex;gap:16px;align-items:baseline"><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace">'+fm(oS)+'</span><span style="font-size:12px;color:rgba(255,255,255,0.7)">'+oe.length+'笔</span></div></div>';
   h+='</div>';
 
-  /* 明细列表 */
   var isOther=S.fCat==="other",allItems=[];
   if(!S.fCat){e.forEach(function(x){allItems.push({t:"amex",d:x})});oe.forEach(function(x){allItems.push({t:"other",d:x})})}
   else if(isOther){oe.forEach(function(x){allItems.push({t:"other",d:x})})}
@@ -571,7 +562,10 @@ function rC(){
       h+='<div class="gctbar"><div class="gctf" style="width:'+pct+'%;background:'+bc+'"></div></div>';
       h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,0.7)"><span>已用 '+fm(c.sp)+'</span><span>'+c.pd+'</span></div>';
       if(isE){
-        h+='<div class="gcexp"><div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-end"><input class="gcsi" id="sa_'+c.id+'" type="number" step="0.01" placeholder="消费金额" inputmode="decimal"><input class="gcsi" id="sd_'+c.id+'" type="date" value="'+td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0')+'"><button class="gcsb" onclick="addSp(\''+c.id+'\')">记录</button></div>';
+        /* ★ 修复1：消费金额+日期单独一行，记录按钮独占一行，避免溢出 */
+        h+='<div class="gcexp">';
+        h+='<div style="display:flex;gap:6px;margin-bottom:6px"><input class="gcsi" id="sa_'+c.id+'" type="number" step="0.01" placeholder="消费金额" inputmode="decimal"><input class="gcsi" id="sd_'+c.id+'" type="date" value="'+td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0')+'"></div>';
+        h+='<button class="gcsb" style="width:100%;margin-bottom:6px" onclick="addSp(\''+c.id+'\')">记录消费</button>';
         if(c.cn!==undefined){h+='<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center"><span style="font-size:13px;color:rgba(255,255,255,0.55)">卡号</span><input class="gcsi" id="cn_'+c.id+'" value="'+(c.cn||"")+'" placeholder="编号"><button class="gcsb" onclick="uCN(\''+c.id+'\')">保存</button></div>'}
         if(c.log&&c.log.length){h+='<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:4px">消费记录</div><div class="gcsl">';c.log.slice().reverse().forEach(function(s){h+='<div class="gcse"><span>'+s.d+'</span><span style="font-family:DM Mono,monospace;color:#E85D4A">-'+fm(s.a)+'</span></div>'});h+='</div>'}
         h+='<div style="margin-top:10px;text-align:right"><button style="background:rgba(232,93,74,0.1);color:#E85D4A;border:none;border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer;min-height:40px" onclick="delCc(\''+c.id+'\')">删除此卡</button></div></div>';
@@ -710,7 +704,36 @@ function tgX(id){S.xId=(S.xId===id)?null:id;S.dId=null;rM()}
 function tgF(k){S.fCat=(S.fCat===k)?null:k;S.xId=null;S.dId=null;rM()}
 function tgD(id){S.dId=(S.dId===id)?null:id;rM()}
 function tgDO(id){S.dId=(S.dId===id)?null:id;rM()}
-function delE(id){S.en=S.en.filter(function(x){return x.id!==id});svM();S.dId=null;S.xId=null;toast("🗑️ 已删除");rM()}
+
+/* ★ 修复2：删除交易时同步清除关联购物卡 */
+function delE(id){
+  var entry=null;
+  S.en.forEach(function(x){if(x.id===id)entry=x});
+  if(entry&&entry.cards&&entry.cards.length){
+    var gcIds=[];
+    entry.cards.forEach(function(c){
+      if(c.gcIds&&c.gcIds.length){
+        /* 新数据：直接用存储的 ID */
+        c.gcIds.forEach(function(gid){gcIds.push(gid)});
+      } else {
+        /* 旧数据：按 type + cn + 购买日期 模糊匹配 */
+        var pd=S.y+"-"+String(S.mo).padStart(2,"0")+"-"+String(entry.day).padStart(2,"0");
+        lGC().forEach(function(card){
+          if(card.type===c.type&&card.denom===c.denom&&card.pd===pd&&
+             (c.cn?card.cn===c.cn:true)){
+            gcIds.push(card.id);
+          }
+        });
+      }
+    });
+    if(gcIds.length){
+      sGC(lGC().filter(function(c){return gcIds.indexOf(c.id)<0}));
+    }
+  }
+  S.en=S.en.filter(function(x){return x.id!==id});
+  svM();S.dId=null;S.xId=null;toast("🗑️ 已删除");rM();
+}
+
 function delOE(id){var oe=(dG(ok(S.y,S.mo))||[]).filter(function(x){return x.id!==id});dS(ok(S.y,S.mo),oe);S.dId=null;S.xId=null;toast("🗑️ 已删除");rM()}
 
 function editOE(id){
@@ -759,7 +782,7 @@ function openForm(){
 
 function editE(id){
   var f;S.en.forEach(function(x){if(x.id===id)f=x});if(!f)return;
-  S.eId=id;S.fC=f.cat;S.fSt=f.store||null;S.fGC=(f.cards||[]).map(function(c){return{type:c.type,denom:c.denom,qty:c.qty,cn:c.cn||""}});
+  S.eId=id;S.fC=f.cat;S.fSt=f.store||null;S.fGC=(f.cards||[]).map(function(c){return{type:c.type,denom:c.denom,qty:c.qty,cn:c.cn||"",gcIds:c.gcIds||[]}});
   var h='<div class="fp-handle"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700" id="fT2">编辑记录</span><button onclick="closeForm()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center">✕</button></div>';
   h+='<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="fl">金额 (CAD)</label><input type="number" step="0.01" min="0" class="fi" id="fA" placeholder="0.00" oninput="uPv()" value="'+f.amt+'" inputmode="decimal"></div><div style="flex:0 0 88px"><label class="fl" id="fDL">日期('+S.mo+'月)</label><input type="number" min="1" max="'+new Date(S.y,S.mo,0).getDate()+'" class="fi" id="fD" value="'+f.day+'" style="text-align:center" inputmode="numeric"></div></div>';
   h+='<label class="fl">类别</label><div class="fcats" id="cBs"></div>';
@@ -812,19 +835,35 @@ function rGS2(){
   h+='<div style="display:flex;gap:6px;margin-top:8px;align-items:flex-end"><div style="flex:1"><label class="fl">卡号 <span style="color:rgba(255,255,255,0.4)">可选</span></label><input type="text" class="fi" id="gN" placeholder="后四位或编号" style="font-family:DM Sans,sans-serif"></div><button class="gcsb" onclick="aGC()">+ 添加</button></div></div>';
   el.innerHTML=h;
 }
-async function rmGC(i){
-  var ok=await customConfirm("确认移除此购物卡记录？","确认移除");
-  if(!ok)return;
-  S.fGC.splice(i,1);rGS2();
-}
+
+/* ★ 修复2：aGC 记录 gcIds，rmGC 同步清 GC 列表 */
 function aGC(){
   var tp=document.getElementById("gT").value,dm=parseFloat(document.getElementById("gD").value);
   if(isNaN(dm)||dm<=0){toast("请输入面额");return}
   var qt=parseInt(document.getElementById("gQ").value)||1,cn=document.getElementById("gN").value.trim();
-  S.fGC.push({type:tp,denom:dm,qty:qt,cn:cn});
-  var cs=lGC();for(var i=0;i<qt;i++){cs.push({id:gi(),type:tp,denom:dm,cn:qt>1?(cn?cn+"-"+(i+1):""):cn,pd:S.y+"-"+String(S.mo).padStart(2,"0")+"-"+String(document.getElementById("fD").value).padStart(2,"0"),bal:dm,sp:0,log:[]})}sGC(cs);
+  var gcIds=[],cs=lGC();
+  var dateVal=document.getElementById("fD")?document.getElementById("fD").value:"01";
+  for(var i=0;i<qt;i++){
+    var nid=gi();
+    gcIds.push(nid);
+    cs.push({id:nid,type:tp,denom:dm,cn:qt>1?(cn?cn+"-"+(i+1):""):cn,pd:S.y+"-"+String(S.mo).padStart(2,"0")+"-"+String(dateVal).padStart(2,"0"),bal:dm,sp:0,log:[]});
+  }
+  sGC(cs);
+  S.fGC.push({type:tp,denom:dm,qty:qt,cn:cn,gcIds:gcIds});
   rGS2();
 }
+
+async function rmGC(i){
+  var ok=await customConfirm("确认移除此购物卡记录？","确认移除");
+  if(!ok)return;
+  var removed=S.fGC.splice(i,1)[0];
+  /* 同步删除已写入 GC 列表的卡片 */
+  if(removed.gcIds&&removed.gcIds.length){
+    sGC(lGC().filter(function(c){return removed.gcIds.indexOf(c.id)<0}));
+  }
+  rGS2();
+}
+
 function uPv(){
   var el=document.getElementById("fPv");if(!el)return;
   var v=parseFloat(document.getElementById("fA").value);
@@ -882,7 +921,7 @@ function subOE(){
 }
 
 /* ═══════════════════════════════════
-   统一关闭遮罩（表单 & 设置面板共用一个遮罩）
+   统一关闭
 ═══════════════════════════════════ */
 function closeAll(){closeForm();closeSettings()}
 
@@ -890,7 +929,6 @@ function closeAll(){closeForm();closeSettings()}
    设置 / 数据同步面板
 ═══════════════════════════════════ */
 function openSettings(){
-  /* 统计当前数据量 */
   var months=0,amexCount=0,otherCount=0;
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
@@ -903,8 +941,6 @@ function openSettings(){
   var h='<div class="fp-handle"></div>';
   h+='<div style="font-size:18px;font-weight:700;margin-bottom:4px">☁️ 数据备份 & 同步</div>';
   h+='<div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:16px">数据保存在本设备，导出后可跨设备同步</div>';
-
-  /* 数据概览 */
   h+='<div class="cd" style="padding:14px;margin-bottom:16px">';
   h+='<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;font-weight:500;letter-spacing:0.5px">当前设备数据</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">';
@@ -914,27 +950,9 @@ function openSettings(){
   h+='</div>';
   if(lastExport){h+='<div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:10px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px">上次导出：'+lastExport+'</div>'}
   h+='</div>';
-
-  /* 导出 */
-  h+='<div style="margin-bottom:10px">';
-  h+='<button class="sync-btn sync-export" onclick="exportData()">📤 导出备份文件</button>';
-  h+='<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">导出为 JSON 文件，可保存到 iCloud Drive、发给对方或存微信</div>';
-  h+='</div>';
-
-  /* 导入 */
-  h+='<div style="margin-bottom:16px">';
-  h+='<button class="sync-btn sync-import" onclick="triggerImport()">📥 导入备份文件</button>';
-  h+='<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">⚠️ 导入会覆盖当前设备的全部数据，请先导出备份再导入</div>';
-  h+='</div>';
-
-  /* 使用提示 */
-  h+='<div class="sync-tip">';
-  h+='<div style="font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:6px">📋 同步步骤</div>';
-  h+='<div>① iPhone 上点「导出」→ 保存到「文件」App</div>';
-  h+='<div>② 通过 AirDrop / 微信 将 JSON 文件发到 Mac</div>';
-  h+='<div>③ Mac 打开网页 → 点「导入」→ 选择文件</div>';
-  h+='<div style="margin-top:6px;color:rgba(255,255,255,0.35)">反向操作同理，两端数据保持一致</div>';
-  h+='</div>';
+  h+='<div style="margin-bottom:10px"><button class="sync-btn sync-export" onclick="exportData()">📤 导出备份文件</button><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">导出为 JSON 文件，可保存到 iCloud Drive、发给对方或存微信</div></div>';
+  h+='<div style="margin-bottom:16px"><button class="sync-btn sync-import" onclick="triggerImport()">📥 导入备份文件</button><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;padding:0 2px">⚠️ 导入会覆盖当前设备的全部数据，请先导出备份再导入</div></div>';
+  h+='<div class="sync-tip"><div style="font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:6px">📋 同步步骤</div><div>① iPhone 上点「导出」→ 保存到「文件」App</div><div>② 通过 AirDrop / 微信 将 JSON 文件发到 Mac</div><div>③ Mac 打开网页 → 点「导入」→ 选择文件</div><div style="margin-top:6px;color:rgba(255,255,255,0.35)">反向操作同理，两端数据保持一致</div></div>';
 
   document.getElementById('sp').innerHTML=h;
   document.getElementById('bk').classList.add('open');
@@ -947,7 +965,7 @@ function closeSettings(){
 }
 
 /* ═══════════════════════════════════
-   导出：将所有 hw-* 键打包成 JSON 下载
+   导出 / 导入
 ═══════════════════════════════════ */
 function exportData(){
   var payload={version:2,exportTime:new Date().toISOString(),device:navigator.userAgent.indexOf('iPhone')>-1?'iPhone':'Mac',store:{}};
@@ -958,23 +976,17 @@ function exportData(){
   var json=JSON.stringify(payload,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
+  var a=document.createElement('a');a.href=url;
   var now=new Date();
   a.download='HW记账-'+now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url)},1500);
-  /* 记录导出时间 */
   var ts=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   dS('hw-last-export',ts);
   toast('📤 备份文件已导出');
-  /* 刷新面板显示最新导出时间 */
   setTimeout(openSettings,400);
 }
 
-/* ═══════════════════════════════════
-   导入：读取 JSON 文件，恢复所有数据
-═══════════════════════════════════ */
 function triggerImport(){document.getElementById('importFile').click()}
 
 function importData(input){
@@ -983,33 +995,26 @@ function importData(input){
   reader.onload=function(e){
     try{
       var payload=JSON.parse(e.target.result);
-      /* 兼容 version 1（无 store 包装）和 version 2 */
       var store=payload.store||payload;
       if(typeof store!=='object'||Array.isArray(store))throw new Error('格式错误');
       var hwKeys=Object.keys(store).filter(function(k){return k.startsWith('hw-')});
       if(!hwKeys.length)throw new Error('无有效数据');
-
-      /* 数据预览 */
       var months=hwKeys.filter(function(k){return /^hw-\d{4}-\d{2}$/.test(k)}).length;
       var cards=(store['hw-gc']||[]).length;
       var exportTime=payload.exportTime?payload.exportTime.replace('T',' ').slice(0,16):'未知时间';
       var device=payload.device||'未知设备';
-
       customConfirm(
         '导入来自 '+device+' 的备份\n导出时间：'+exportTime+'\n包含 '+months+' 个月份、'+cards+' 张购物卡\n\n⚠️ 将覆盖当前全部数据',
         '确认导入'
       ).then(function(ok){
         if(!ok){input.value='';return}
-        /* 清除现有 hw-* 数据 */
         var toRemove=[];
         for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith('hw-'))toRemove.push(k)}
         toRemove.forEach(function(k){localStorage.removeItem(k)});
-        /* 写入导入数据 */
         hwKeys.forEach(function(k){dS(k,store[k])});
         input.value='';
         toast('✅ 导入成功！共 '+hwKeys.length+' 条数据');
         closeSettings();
-        /* 刷新当前视图 */
         S.en=[];S.dId=null;S.xId=null;S.fCat=null;S.cEx=null;
         ldM();
       });
