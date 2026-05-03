@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TFSA&RRSP">
+<title>TFSA & RRSP 管理</title>
+<style>
+  :root {
+    --primary: #1a73e8;
+    --primary-light: #e8f0fe;
+    --success: #1e8449;
+    --success-bg: #e6f4ea;
+    --warn: #e65c00;
+    --warn-bg: #fff3e0;
+    --danger: #c0392b;
+    --danger-bg: #fdecea;
+    --text: #1a1a1a;
+    --text2: #666;
+    --border: #e0e0e0;
+    --bg: #f5f5f7;
+    --card: #fff;
+    --nav-h: 56px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body { padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px); overscroll-behavior: none; }
+
+  /* ── Header ── */
+  .hdr {
+    background: var(--card);
+    padding: 12px 16px 10px;
+    padding-top: calc(12px + var(--safe-top));
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .hdr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .hdr-title { font-size: 17px; font-weight: 700; }
+  .person-seg {
+    display: flex;
+    background: #f0f0f2;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .person-seg button {
+    flex: 1;
+    padding: 6px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .person-seg button.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.14);
+  }
+
+  /* ── Bottom Nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: var(--safe-bottom);
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 6px 0;
+    transition: color 0.15s;
+  }
+  .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-btn.active { color: var(--primary); }
+
+  /* ── Pages ── */
+  .page { display: none; padding: 12px 12px 0; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .card-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Summary Stats ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .stat-item { background: var(--bg); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .stat-v { font-size: 14px; font-weight: 800; margin-bottom: 3px; line-height: 1.2; }
+  .stat-v.c-blue { color: var(--primary); }
+  .stat-v.c-orange { color: var(--warn); }
+  .stat-v.c-green { color: var(--success); }
+  .stat-l { font-size: 9px; color: var(--text2); font-weight: 600; letter-spacing: 0.2px; }
+
+  /* Progress bar */
+  .prog-wrap { margin-bottom: 4px; }
+  .prog-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .prog-meta b { color: var(--text); font-weight: 700; }
+  .prog-track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width 0.45s ease; }
+  .fill-blue { background: linear-gradient(90deg,#1a73e8,#4da3ff); }
+  .fill-green { background: linear-gradient(90deg,#1e8449,#27ae60); }
+
+  /* ── Year rows ── */
+  .yr-block { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  .yr-row {
+    display: flex;
+    align-items: center;
+    padding: 13px 14px;
+    background: var(--card);
+    cursor: pointer;
+    gap: 10px;
+    min-height: 54px;
+    user-select: none;
+  }
+  .yr-row:active { background: #f5f5f7; }
+  .yr-num { font-size: 16px; font-weight: 800; color: var(--text); min-width: 44px; }
+  .yr-metas { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; }
+  .yr-meta-item { font-size: 11px; color: var(--text2); }
+  .yr-meta-item b { color: var(--text); font-weight: 700; }
+  .yr-meta-item b.pos { color: var(--success); }
+  .yr-meta-item b.neg { color: var(--danger); }
+  .yr-chevron { font-size: 12px; color: #bbb; transition: transform 0.2s; flex-shrink: 0; }
+  .yr-block.open .yr-chevron { transform: rotate(90deg); }
+
+  /* Year body */
+  .yr-body { display: none; border-top: 1px solid var(--border); background: #fafafa; }
+  .yr-block.open .yr-body { display: block; }
+  .yr-body-inner { padding: 12px 14px; }
+
+  /* Contrib rows */
+  .contrib-item {
+    display: flex;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 8px;
+  }
+  .contrib-item:last-of-type { border-bottom: none; }
+  .contrib-info { flex: 1; }
+  .contrib-date { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+  .contrib-amt { font-size: 15px; font-weight: 800; color: var(--danger); }
+  .contrib-note { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .contrib-badge { padding: 3px 7px; border-radius: 8px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-self { background: #e8f0fe; color: var(--primary); }
+  .badge-spousal { background: var(--warn-bg); color: var(--warn); }
+  .contrib-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .ic-btn { width: 36px; height: 36px; border: none; background: none; cursor: pointer; font-size: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .ic-btn:active { background: var(--border); }
+
+  /* Year footer */
+  .yr-footer {
+    border-top: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .yr-total { font-size: 12px; color: var(--text2); }
+  .yr-total b { color: var(--text); }
+  .yr-footer-btns { display: flex; gap: 6px; }
+
+  .empty-msg { text-align: center; padding: 20px 0 14px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; padding: 0 18px;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .btn:active { opacity: 0.75; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-ghost-red { background: transparent; border: none; color: var(--danger); font-size: 13px; font-weight: 600; padding: 0 8px; height: 36px; border-radius: 8px; cursor: pointer; }
+  .btn-ghost-red:active { background: var(--danger-bg); }
+  .btn-sm { height: 34px; font-size: 13px; padding: 0 14px; }
+
+  .add-yr-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; height: 48px;
+    border: 2px dashed var(--border); border-radius: 10px;
+    background: none; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--primary);
+    margin-top: 8px;
+  }
+  .add-yr-btn:active { background: var(--primary-light); border-color: var(--primary); }
+
+  /* ── Spousal RRSP ── */
+  .spousal-box {
+    background: var(--warn-bg);
+    border: 1px solid #ffcc80;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 4px;
+  }
+  .spousal-title { font-size: 12px; font-weight: 700; color: var(--warn); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+
+  .safe-banner {
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid;
+  }
+  .safe-banner.is-safe { background: var(--success-bg); border-color: #a8d5b5; }
+  .safe-banner.not-safe { background: var(--warn-bg); border-color: #ffcc80; }
+  .safe-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .safe-item { display: flex; flex-direction: column; gap: 2px; }
+  .safe-lbl { font-size: 10px; color: var(--text2); font-weight: 600; text-transform: uppercase; }
+  .safe-val { font-size: 26px; font-weight: 900; line-height: 1; }
+  .safe-val.green { color: var(--success); }
+  .safe-val.orange { color: var(--warn); }
+  .safe-val.black { color: var(--text); }
+  .safe-arrow { font-size: 18px; color: #bbb; }
+  .safe-status { margin-top: 10px; }
+  .tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .tag-ok { background: var(--success-bg); color: var(--success); }
+  .tag-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid #ffcc80; }
+  .safe-note { font-size: 11px; color: var(--text2); margin-top: 8px; line-height: 1.6; }
+
+  .spousal-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  .spousal-table th { text-align: left; padding: 5px 6px; font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .spousal-table td { padding: 9px 6px; border-bottom: 1px solid #f5e6c8; vertical-align: middle; }
+  .spousal-table tr:last-child td { border-bottom: none; }
+  .spousal-table .td-yr { font-weight: 800; font-size: 14px; }
+  .spousal-table .td-amt { font-weight: 800; color: var(--danger); }
+  .spousal-table .td-safe { font-weight: 800; color: var(--success); }
+
+  /* ── Settings Page ── */
+  .settings-section { margin-bottom: 20px; }
+  .settings-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.7px;
+    margin-bottom: 10px; padding: 0 4px;
+  }
+  .settings-list {
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .settings-item {
+    display: flex; align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    gap: 14px;
+    min-height: 60px;
+    background: var(--card);
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item:active { background: #f5f5f7; }
+  .si-icon { font-size: 22px; width: 36px; text-align: center; flex-shrink: 0; }
+  .si-text { flex: 1; }
+  .si-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .si-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+  .si-arrow { font-size: 14px; color: #bbb; flex-shrink: 0; }
+  .si-badge {
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+  .si-badge.warn { background: var(--warn); }
+  .si-badge.ok { background: var(--success); }
+
+  /* Info card */
+  .info-card {
+    background: var(--primary-light);
+    border: 1px solid #c5d9fb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1557b0;
+  }
+  .info-card b { font-weight: 700; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+    left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.82);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--card);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+  .fg { margin-bottom: 14px; }
+  .fg label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .fg input, .fg select {
+    width: 100%; height: 48px; padding: 0 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 16px; color: var(--text); background: var(--card);
+    appearance: none; -webkit-appearance: none;
+  }
+  .fg input:focus, .fg select:focus { outline: none; border-color: var(--primary); }
+  .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-btns .btn { flex: 1; height: 50px; font-size: 15px; border-radius: 12px; }
+
+  /* Hidden file input */
+  #file-import { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-top">
+    <span class="hdr-title">📊 TFSA & RRSP</span>
+    <div class="person-seg" id="person-seg">
+      <button id="pseg-wei" class="active" onclick="setPerson('wei')">Wei</button>
+      <button id="pseg-hui" onclick="setPerson('hui')">Hui</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pages -->
+<div id="page-tfsa" class="page active"></div>
+<div id="page-rrsp" class="page"></div>
+<div id="page-settings" class="page"></div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-tfsa" onclick="goPage('tfsa')">
+    <span class="nav-icon">💰</span>
+    <span class="nav-label">TFSA</span>
+  </button>
+  <button class="nav-btn" id="nav-rrsp" onclick="goPage('rrsp')">
+    <span class="nav-icon">🏦</span>
+    <span class="nav-label">RRSP</span>
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="goPage('settings')">
+    <span class="nav-icon">⚙️</span>
+    <span class="nav-label">设置</span>
+  </button>
+</nav>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="onBgClick(event)">
+  <div class="modal-sheet" id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modal-ok">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="file-import" accept=".json,application/json" onchange="onFileImport(event)">
+
+<script>
+// ══════════════ STATE ══════════════
+const KEY = 'hw_mobile_v1';
+function newD() { return { tfsa:{wei:{years:[]},hui:{years:[]}}, rrsp:{wei:{years:[]},hui:{years:[]}} }; }
+function load() { try{ const r=localStorage.getItem(KEY); if(r) return JSON.parse(r); }catch(e){} return newD(); }
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(D));
+  localStorage.setItem(KEY+'_lastSave', new Date().toISOString());
+}
+let D = load();
+
+let curPage = 'tfsa';
+let curPerson = 'wei';
+const now = new Date().getFullYear();
+
+// ══════════════ UTILS ══════════════
+const $ = id => document.getElementById(id);
+function fmt(n) {
+  if (n == null || n === '') return '—';
+  const v = Math.round(Number(n));
+  return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-CA');
+}
+function pct(u,t){ return t ? Math.min(100,Math.max(0,Math.round(u/t*100))) : 0; }
+
+function toast(msg, ms=2200) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ══════════════ NAV ══════════════
+function goPage(p) {
+  curPage = p;
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  $('page-' + p).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('nav-' + p).classList.add('active');
+  // Show/hide person selector
+  $('person-seg').style.display = (p === 'settings') ? 'none' : '';
+  render();
+}
+
+function setPerson(p) {
+  curPerson = p;
+  $('pseg-wei').classList.toggle('active', p==='wei');
+  $('pseg-hui').classList.toggle('active', p==='hui');
+  render();
+}
+
+function render() {
+  if (curPage === 'tfsa') renderTFSA();
+  else if (curPage === 'rrsp') renderRRSP();
+  else renderSettings();
+}
+
+function toggleBlock(id) {
+  const el = $(id);
+  if (el) el.classList.toggle('open');
+}
+
+// ══════════════ TFSA ══════════════
+function renderTFSA() {
+  const yrs = (D.tfsa[curPerson].years || []).slice().sort((a,b) => b.year - a.year);
+  const totalRoom = yrs.reduce((s,y) => s+(Number(y.room)||0), 0);
+  const totalUsed = yrs.reduce((s,y) => s+(y.contributions||[]).reduce((cs,c) => cs+(Number(c.amount)||0),0), 0);
+  const remain = totalRoom - totalUsed;
+  const p = pct(totalUsed, totalRoom);
+
+  let h = `
+  <div class="card">
+    <div class="card-label">TFSA 总览 · ${curPerson==='wei'?'Wei':'Hui'}</div>
+    <div class="prog-wrap">
+      <div class="prog-meta"><span>已使用 <b>${fmt(totalUsed)}</b></span><span>总额度 <b>${fmt(totalRoom)}</b></span></div>
+      <div class="prog-track"><div class="prog-fill fill-blue" style="width:${p}%"></div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-v c-blue">${fmt(totalRoom)}</div><div class="stat-l">累计总额度</div></div>
+      <div class="stat-item"><div class="stat-v c-orange">${fmt(totalUsed)}</div><div class="stat-l">累计已使用</div></div>
+      <div class="stat-item"><div class="stat-v c-green">${fmt(remain)}</div><div class="stat-l">当前剩余</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">逐年明细</div>`;
+
+  if (!yrs.length) {
+    h += `<div class="empty-msg">暂无数据<br>点击下方按钮添加年份</div>`;
+  } else {
+    yrs.forEach(yr => {
+      const used = (yr.contributions||[]).reduce((s,c)=>s+(Number(c.amount)||0),0);
+      const rm = (Number(yr.room)||0) - used;
+      h += `
+      <div class="yr-block" id="tf-${curPerson}-${yr.year}">
+        <div class="yr-row" onclick="toggleBlock('tf-${curPerson}-${yr.year}')">
+          <span class="yr-num">${yr.year}</span>
+          <div class="yr-metas">
+            <span class="yr-meta-item">额度 <b>${fmt(yr.room)}</b></span>
+            <span class="yr-meta-item">已用 <b>${fmt(used)}</b></span>
+            <span class="yr-meta-item">剩余 <b class="${rm>=0?'pos':'neg'}">${fmt(rm)}</b></span>
+          </div>
+          <span class="yr-chevron">▶</span>
+        </div>
+        <div class="yr-body">
+          <div class="yr-body-inner">${tfsaContribsHTML(yr)}</div>
+          <div class="yr-footer">
+            <span class="yr-total">本年合计 <b>${fmt(used)}</b></span>
+            <div class="yr-footer-btns">
+              <button class="btn btn-outline btn-sm" onclick="editTFSAYr('${curPerson}',${yr.year})">编辑额度</button>
+              <button class="btn-ghost-red" onclick="delTFSAYr('${curPerson}',${yr.year})">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  h += `
+    <button class="add-yr-btn" onclick="addTFSAYr('${curPerson}')">＋ 新增年份</button>
+  </div>`;
+  $('page-tfsa').innerHTML = h;
+}
+
+function tfsaContribsHTML(yr) {
+  const cs = yr.contributions || [];
+  if (!cs.length) return `<div class="empty-msg" style="padding:10px 0 6px">本年暂无贡献记录</div>
+    <button class="btn btn-primary btn-sm" onclick="addTFSAC('${curPerson}',${yr.year})">＋ 添加贡献</button>`;
+
+  let h = '';
+  cs.forEach((c, i) => {
+    h += `
+    <div class="contrib-item">
+      <div class="contrib-info">
+        <div class="contrib-date">${c.date||'—'}</div>
+        <div class="contrib-amt">${fmt(c.amount)}</div>
+        ${c.note ? `<div class="contrib-note">${c.note}</div>` : ''}
+      </div>
+      <div class="contrib-actions">
+        <button class="ic-btn" onclick="editTFSAC('${curPerson}',${yr.year},${i})">✏️</button>
+        <button class="ic-btn" onclick="delTFSAC('${curPerson}',${yr.year},${i})">🗑️</button>
+      </div>
+    </div>`;
+  });
+  h += `<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="addTFSAC('${curPerson}',${yr.year})">＋ 添加贡献</button>`;
+  return h;
+}
+
+// TFSA Actions
+function addTFSAYr(p) {
+  modal('新增 TFSA 年份',`
+    <div class="fg"><label>年份</label><input id="mi-y" type="number" inputmode="numeric" min="2009" max="2035" placeholder="如 2024"></div>
+    <div class="fg"><label>本年新增额度 ($)</label><input id="mi-r" type="number" inputmode="decimal" min="0" placeholder="如 7000"></div>
+  `,()=>{
+    const y=parseInt($('mi-y').value), r=parseFloat($('mi-r').value);
+    if(!y||!r) return alert('请填写年份和额度');
+    if(D.tfsa[p].years.find(x=>x.year===y)) return alert('该年份已存在');
+    D.tfsa[p].years.push({year:y,room:r,contributions:[]});
+    save(); renderTFSA(); closeModal();
+  });
+}
+
+function editTFSAYr(p, yr) {
+  const y = D.tfsa[p].years.find(x=>x.year===yr);
+  modal(`编辑 ${yr} 年额度`,`
+    <div class="fg"><label>额度 ($)</label><input id="mi-r" type="number" inputmode="decimal" value="${y.room}"></div>
+  `,()=>{
+    y.room = parseFloat($('mi-r').value);
+    save(); renderTFSA(); closeModal();
+  });
+}
+
+function delTFSAYr(p, yr) {
+  if(!confirm(`删除 ${yr} 年所有数据？`)) return;
+  D.tfsa[p].years = D.tfsa[p].years.filter(x=>x.year!==yr);
+  save(); renderTFSA();
+}
+
+function addTFSAC(p, yr) {
+  modal(`${yr} 年 · 添加贡献`,`
+    <div class="fg"><label>日期</label><input id="mi-d" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="fg"><label>金额 ($)</label><input id="mi-a" type="number" inputmode="decimal" min="0" placeholder="如 3500"></div>
+    <div class="fg"><label>备注（选填）</label><input id="mi-n" type="text" placeholder="如：年初投入"></div>
+  `,()=>{
+    const a=parseFloat($('mi-a').value);
+    if(!a) return alert('请填写金额');
+    D.tfsa[p].years.find(x=>x.year===yr).contributions.push({date:$('mi-d').value,amount:a,note:$('mi-n').value});
+    save(); renderTFSA(); closeModal();
+  });
+}
+
+function editTFSAC(p, yr, i) {
+  const c = D.tfsa[p].years.find(x=>x.year===yr).contributions[i];
+  modal('编辑贡献记录',`
+    <div class="fg"><label>日期</label><input id="mi-d" type="date" value="${c.date||''}"></div>
+    <div class="fg"><label>金额 ($)</label><input id="mi-a" type="number" inputmode="decimal" value="${c.amount}"></div>
+    <div class="fg"><label>备注</label><input id="mi-n" type="text" value="${c.note||''}"></div>
+  `,()=>{
+    c.date=$('mi-d').value; c.amount=parseFloat($('mi-a').value); c.note=$('mi-n').value;
+    save(); renderTFSA(); closeModal();
+  });
+}
+
+function delTFSAC(p, yr, i) {
+  if(!confirm('删除此记录？')) return;
+  D.tfsa[p].years.find(x=>x.year===yr).contributions.splice(i,1);
+  save(); renderTFSA();
+}
+
+// ══════════════ RRSP ══════════════
+function renderRRSP() {
+  const allYrs = (D.rrsp[curPerson].years||[]).slice();
+
+  // 按年份升序计算滚动累计
+  const yrsAsc = allYrs.slice().sort((a,b) => a.year - b.year);
+  let _cumNOA = 0, _cumUsed = 0;
+  const cumMap = {};
+  yrsAsc.forEach(yr => {
+    _cumNOA  += Number(yr.noaRoom)||0;
+    _cumUsed += (yr.contributions||[]).reduce((s,c)=>s+(Number(c.amount)||0), 0);
+    cumMap[yr.year] = { cumNOA: _cumNOA, cumUsed: _cumUsed, cumRem: _cumNOA - _cumUsed };
+  });
+
+  // 总览 = 最新年度的累计数
+  const totalNOA  = _cumNOA;
+  const totalUsed = _cumUsed;
+  const totalRem  = _cumNOA - _cumUsed;
+  const p = pct(totalUsed, totalNOA);
+  const pname = curPerson==='wei'?'Wei':'Hui';
+
+  let h = `
+  <div class="card">
+    <div class="card-label">RRSP 总览 · ${pname}</div>
+    <div class="prog-wrap">
+      <div class="prog-meta"><span>累计已用 <b>${fmt(totalUsed)}</b></span><span>累计总额 <b>${fmt(totalNOA)}</b></span></div>
+      <div class="prog-track"><div class="prog-fill fill-green" style="width:${p}%"></div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-v c-blue">${fmt(totalNOA)}</div><div class="stat-l">累计总额</div></div>
+      <div class="stat-item"><div class="stat-v c-orange">${fmt(totalUsed)}</div><div class="stat-l">累计已用</div></div>
+      <div class="stat-item"><div class="stat-v c-green">${fmt(totalRem)}</div><div class="stat-l">累计剩余</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">逐年明细（NOA 录入）</div>`;
+
+  const yrsDesc = allYrs.slice().sort((a,b) => b.year - a.year);
+
+  if (!yrsDesc.length) {
+    h += `<div class="empty-msg">暂无数据<br>从 NOA 获取数据后点击下方按钮录入</div>`;
+  } else {
+    yrsDesc.forEach(yr => {
+      const cm     = cumMap[yr.year];
+      const cs     = yr.contributions||[];
+      const yrUsed = cs.reduce((s,c)=>s+(Number(c.amount)||0), 0);
+      const selfU  = cs.filter(c=>c.type!=='spousal').reduce((s,c)=>s+(Number(c.amount)||0), 0);
+      const spoU   = cs.filter(c=>c.type==='spousal').reduce((s,c)=>s+(Number(c.amount)||0), 0);
+      const noa    = Number(yr.noaRoom)||0;
+      const rmC    = cm.cumRem > 0 ? 'pos' : (cm.cumRem < 0 ? 'neg' : '');
+
+      const spoMeta = curPerson==='wei' && spoU > 0
+        ? `<span class="yr-meta-item" style="color:var(--warn)">配偶 <b style="color:var(--warn)">${fmt(spoU)}</b></span>` : '';
+
+      h += `
+      <div class="yr-block" id="rsp-${curPerson}-${yr.year}">
+        <div class="yr-row" onclick="toggleBlock('rsp-${curPerson}-${yr.year}')">
+          <span class="yr-num">${yr.year}</span>
+          <div class="yr-metas">
+            <span class="yr-meta-item">本年NOA <b>${fmt(noa)}</b></span>
+            <span class="yr-meta-item">累计总额 <b>${fmt(cm.cumNOA)}</b></span>
+            <span class="yr-meta-item">累计已用 <b>${fmt(cm.cumUsed)}</b></span>
+            ${spoMeta}
+            <span class="yr-meta-item">累计剩余 <b class="${rmC}">${fmt(cm.cumRem)}</b></span>
+          </div>
+          <span class="yr-chevron">▶</span>
+        </div>
+        <div class="yr-body">
+          <div class="yr-body-inner">${rrspContribsHTML(yr)}</div>
+          <div class="yr-footer">
+            <span class="yr-total">
+              本年使用 <b>${fmt(yrUsed)}</b>
+              ${curPerson==='wei' && spoU>0 ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">（自 ${fmt(selfU)} + 配 ${fmt(spoU)}）</span>` : ''}
+            </span>
+            <div class="yr-footer-btns">
+              <button class="btn btn-outline btn-sm" onclick="editRRSPYr('${curPerson}',${yr.year})">编辑NOA</button>
+              <button class="btn-ghost-red" onclick="delRRSPYr('${curPerson}',${yr.year})">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  h += `
+    <button class="add-yr-btn" onclick="addRRSPYr('${curPerson}')">＋ 新增年份（从 NOA 录入）</button>
+  </div>`;
+
+  if (curPerson === 'wei') h += buildSpousal();
+  $('page-rrsp').innerHTML = h;
+}
+
+function rrspContribsHTML(yr) {
+  const cs = yr.contributions||[];
+  const isWei = curPerson==='wei';
+  if (!cs.length) return `<div class="empty-msg" style="padding:10px 0 6px">本年暂无使用记录</div>
+    <button class="btn btn-primary btn-sm" onclick="addRRSPC('${curPerson}',${yr.year})">＋ 添加使用记录</button>`;
+
+  let h = '';
+  cs.forEach((c,i) => {
+    const badge = isWei
+      ? (c.type==='spousal'
+          ? '<span class="contrib-badge badge-spousal">配偶RRSP</span>'
+          : '<span class="contrib-badge badge-self">自身RRSP</span>')
+      : '';
+    h += `
+    <div class="contrib-item">
+      <div class="contrib-info">
+        <div class="contrib-date">${c.date||'—'} ${badge}</div>
+        <div class="contrib-amt">${fmt(c.amount)}</div>
+        ${c.note?`<div class="contrib-note">${c.note}</div>`:''}
+      </div>
+      <div class="contrib-actions">
+        <button class="ic-btn" onclick="editRRSPC('${curPerson}',${yr.year},${i})">✏️</button>
+        <button class="ic-btn" onclick="delRRSPC('${curPerson}',${yr.year},${i})">🗑️</button>
+      </div>
+    </div>`;
+  });
+  h += `<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="addRRSPC('${curPerson}',${yr.year})">＋ 添加使用记录</button>`;
+  return h;
+}
+
+function buildSpousal() {
+  const yrs = D.rrsp.wei.years||[];
+  const byYear = {};
+  yrs.forEach(yr => {
+    (yr.contributions||[]).forEach(c => {
+      if(c.type==='spousal' && Number(c.amount)) {
+        byYear[yr.year] = (byYear[yr.year]||0) + Number(c.amount);
+      }
+    });
+  });
+  const syrs = Object.keys(byYear).map(Number).sort((a,b)=>b-a);
+  const lastYr = syrs.length ? syrs[0] : null;
+  const safeYr = lastYr ? lastYr + 3 : null;
+  const isSafe = safeYr ? now >= safeYr : false;
+
+  let banner = '';
+  if (lastYr) {
+    banner = `
+    <div class="safe-banner ${isSafe?'is-safe':'not-safe'}">
+      <div class="safe-row">
+        <div class="safe-item">
+          <span class="safe-lbl">最后供款年</span>
+          <span class="safe-val black">${lastYr}</span>
+        </div>
+        <span class="safe-arrow">→</span>
+        <div class="safe-item">
+          <span class="safe-lbl">安全取出起始年</span>
+          <span class="safe-val ${isSafe?'green':'orange'}">${safeYr}</span>
+        </div>
+      </div>
+      <div class="safe-status">
+        ${isSafe
+          ? `<span class="tag tag-ok">✓ 现已可安全取出</span>`
+          : `<span class="tag tag-warn">⏳ 距安全年还有 ${safeYr-now} 年</span>`}
+      </div>
+      <div class="safe-note">※ 归因规则：取出年及前 2 个日历年内有供款将归入 Wei 的收入，最后供款年 + 3 年后方可安全取出。</div>
+    </div>`;
+
+    let tbl = `<table class="spousal-table"><thead><tr><th>供款年</th><th>供款合计</th><th>安全取出年</th><th>状态</th></tr></thead><tbody>`;
+    syrs.forEach(y => {
+      const safe = y+3;
+      tbl += `<tr>
+        <td class="td-yr">${y}</td>
+        <td class="td-amt">${fmt(byYear[y])}</td>
+        <td class="td-safe">${safe}</td>
+        <td>${now>=safe?'<span class="tag tag-ok" style="font-size:11px">✓ 可取</span>':'<span class="tag tag-warn" style="font-size:11px">⏳ '+safe+'年起</span>'}</td>
+      </tr>`;
+    });
+    tbl += `</tbody></table>`;
+    banner += tbl;
+  } else {
+    banner = `<div class="empty-msg" style="font-size:12px;padding:10px 0 4px">在上方年度明细添加「配偶RRSP」记录后自动汇总</div>`;
+  }
+
+  return `
+  <div class="card">
+    <div class="card-label" style="margin-bottom:10px">RRSP · Wei</div>
+    <div class="spousal-box">
+      <div class="spousal-title">💑 配偶 RRSP 追踪（Wei → Hui）</div>
+      ${banner}
+    </div>
+  </div>`;
+}
+
+// RRSP Actions
+function addRRSPYr(p) {
+  modal('新增 RRSP 年份',`
+    <div class="fg"><label>年份</label><input id="mi-y" type="number" inputmode="numeric" min="2000" max="2035" placeholder="如 2024"></div>
+    <div class="fg"><label>NOA 可用额度 ($)</label><input id="mi-n" type="number" inputmode="decimal" min="0" placeholder="从税务局 NOA 获取"></div>
+  `,()=>{
+    const y=parseInt($('mi-y').value), n=parseFloat($('mi-n').value);
+    if(!y||!n) return alert('请填写年份和NOA额度');
+    if(!D.rrsp[p].years) D.rrsp[p].years=[];
+    if(D.rrsp[p].years.find(x=>x.year===y)) return alert('该年份已存在');
+    D.rrsp[p].years.push({year:y,noaRoom:n,contributions:[]});
+    save(); renderRRSP(); closeModal();
+  });
+}
+
+function editRRSPYr(p, yr) {
+  const y = D.rrsp[p].years.find(x=>x.year===yr);
+  modal(`编辑 ${yr} 年 NOA 额度`,`
+    <div class="fg"><label>NOA 可用额度 ($)</label><input id="mi-n" type="number" inputmode="decimal" value="${y.noaRoom}"></div>
+  `,()=>{
+    y.noaRoom=parseFloat($('mi-n').value);
+    save(); renderRRSP(); closeModal();
+  });
+}
+
+function delRRSPYr(p, yr) {
+  if(!confirm(`删除 ${yr} 年所有 RRSP 数据？`)) return;
+  D.rrsp[p].years=D.rrsp[p].years.filter(x=>x.year!==yr);
+  save(); renderRRSP();
+}
+
+function addRRSPC(p, yr) {
+  const tf = p==='wei'?`
+    <div class="fg"><label>供款类型</label>
+    <select id="mi-t">
+      <option value="self">自身 RRSP</option>
+      <option value="spousal">配偶 RRSP（供入 Hui 账户，占用 Wei 额度）</option>
+    </select></div>`:'';
+  modal(`${yr} 年 · 添加 RRSP 使用记录`,`
+    <div class="fg"><label>日期</label><input id="mi-d" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="fg"><label>金额 ($)</label><input id="mi-a" type="number" inputmode="decimal" min="0" placeholder="实际供款金额"></div>
+    ${tf}
+    <div class="fg"><label>备注（选填）</label><input id="mi-n" type="text"></div>
+  `,()=>{
+    const a=parseFloat($('mi-a').value);
+    if(!a) return alert('请填写金额');
+    const t = p==='wei'?$('mi-t').value:'self';
+    D.rrsp[p].years.find(x=>x.year===yr).contributions.push({date:$('mi-d').value,amount:a,type:t,note:$('mi-n').value});
+    save(); renderRRSP(); closeModal();
+  });
+}
+
+function editRRSPC(p, yr, i) {
+  const c = D.rrsp[p].years.find(x=>x.year===yr).contributions[i];
+  const tf = p==='wei'?`
+    <div class="fg"><label>供款类型</label>
+    <select id="mi-t">
+      <option value="self" ${c.type!=='spousal'?'selected':''}>自身 RRSP</option>
+      <option value="spousal" ${c.type==='spousal'?'selected':''}>配偶 RRSP</option>
+    </select></div>`:'';
+  modal('编辑使用记录',`
+    <div class="fg"><label>日期</label><input id="mi-d" type="date" value="${c.date||''}"></div>
+    <div class="fg"><label>金额 ($)</label><input id="mi-a" type="number" inputmode="decimal" value="${c.amount}"></div>
+    ${tf}
+    <div class="fg"><label>备注</label><input id="mi-n" type="text" value="${c.note||''}"></div>
+  `,()=>{
+    c.date=$('mi-d').value; c.amount=parseFloat($('mi-a').value);
+    if(p==='wei') c.type=$('mi-t').value;
+    c.note=$('mi-n').value;
+    save(); renderRRSP(); closeModal();
+  });
+}
+
+function delRRSPC(p, yr, i) {
+  if(!confirm('删除此条记录？')) return;
+  D.rrsp[p].years.find(x=>x.year===yr).contributions.splice(i,1);
+  save(); renderRRSP();
+}
+
+// ══════════════ SETTINGS ══════════════
+function renderSettings() {
+  const lastSave = localStorage.getItem(KEY + '_lastSave');
+  const lastSaveStr = lastSave
+    ? new Date(lastSave).toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+    : '尚未保存';
+
+  // Count records
+  const tfsaWeiYrs = (D.tfsa.wei.years||[]).length;
+  const tfsaHuiYrs = (D.tfsa.hui.years||[]).length;
+  const rrspWeiYrs = (D.rrsp.wei.years||[]).length;
+  const rrspHuiYrs = (D.rrsp.hui.years||[]).length;
+  const total = tfsaWeiYrs + tfsaHuiYrs + rrspWeiYrs + rrspHuiYrs;
+
+  $('page-settings').innerHTML = `
+  <div class="info-card">
+    <b>💡 使用提示</b><br>
+    数据保存在本机浏览器中。建议定期导出备份，换设备时先导出再在新设备导入。
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title">数据管理</div>
+    <div class="settings-list">
+      <button class="settings-item" onclick="doExport()">
+        <span class="si-icon">📤</span>
+        <div class="si-text">
+          <div class="si-title">导出数据备份</div>
+          <div class="si-desc">将全部数据导出为 JSON 文件，可存入「文件」App 或通过 AirDrop 备份</div>
+        </div>
+        <span class="si-arrow">›</span>
+      </button>
+      <button class="settings-item" onclick="$('file-import').click()">
+        <span class="si-icon">📥</span>
+        <div class="si-text">
+          <div class="si-title">导入数据</div>
+          <div class="si-desc">从之前导出的 JSON 文件恢复数据（将覆盖当前所有数据）</div>
+        </div>
+        <span class="si-arrow">›</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title">当前数据概况</div>
+    <div class="settings-list">
+      <div class="settings-item" style="cursor:default">
+        <span class="si-icon">📊</span>
+        <div class="si-text">
+          <div class="si-title">已录入年份</div>
+          <div class="si-desc">TFSA：Wei ${tfsaWeiYrs} 年 / Hui ${tfsaHuiYrs} 年　RRSP：Wei ${rrspWeiYrs} 年 / Hui ${rrspHuiYrs} 年</div>
+        </div>
+        <span class="si-badge ${total>0?'ok':'warn'}">${total} 年</span>
+      </div>
+      <div class="settings-item" style="cursor:default">
+        <span class="si-icon">🕐</span>
+        <div class="si-text">
+          <div class="si-title">最后更新</div>
+          <div class="si-desc">${lastSaveStr}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title">危险操作</div>
+    <div class="settings-list">
+      <button class="settings-item" onclick="doClearAll()" style="color:var(--danger)">
+        <span class="si-icon">🗑️</span>
+        <div class="si-text">
+          <div class="si-title" style="color:var(--danger)">清空所有数据</div>
+          <div class="si-desc">删除全部 TFSA 和 RRSP 记录，操作不可恢复</div>
+        </div>
+        <span class="si-arrow" style="color:var(--danger)">›</span>
+      </button>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:var(--text2);font-size:11px;padding:8px 0 16px">
+    TFSA & RRSP 管理 · 数据仅存于本机
+  </div>`;
+}
+
+// ══════════════ IMPORT / EXPORT ══════════════
+function doExport() {
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    data: D
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const dateStr = new Date().toISOString().slice(0,10);
+  const filename = `TFSA_RRSP_备份_${dateStr}.json`;
+
+  // iOS Safari: use Web Share API with file if available
+  if (navigator.canShare) {
+    const file = new File([json], filename, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'TFSA & RRSP 数据备份' })
+        .then(() => toast('✅ 已分享备份文件'))
+        .catch(e => { if (e.name !== 'AbortError') fallbackDownload(json, filename); });
+      return;
+    }
+  }
+  fallbackDownload(json, filename);
+}
+
+function fallbackDownload(json, filename) {
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  toast('✅ 备份文件已下载');
+}
+
+function onFileImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      // Support both raw data and wrapped export format
+      const incoming = parsed.version && parsed.data ? parsed.data : parsed;
+
+      // Validate structure
+      if (!incoming.tfsa || !incoming.rrsp) throw new Error('格式不正确');
+
+      if (!confirm(`确认导入备份数据？\n当前所有数据将被覆盖，此操作不可恢复。\n\n导出时间：${parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString('zh-CN') : '未知'}`)) {
+        $('file-import').value = '';
+        return;
+      }
+
+      D = incoming;
+      // Ensure structure completeness
+      ['wei','hui'].forEach(p => {
+        if (!D.tfsa[p]) D.tfsa[p] = { years: [] };
+        if (!D.rrsp[p]) D.rrsp[p] = { years: [] };
+      });
+
+      save();
+      toast('✅ 数据导入成功');
+      renderSettings();
+    } catch(err) {
+      alert('导入失败：' + err.message + '\n请确认文件为本应用导出的备份。');
+    }
+    $('file-import').value = '';
+  };
+  reader.readAsText(file);
+}
+
+function doClearAll() {
+  if (!confirm('⚠️ 确认清空所有数据？\n\nTFSA 和 RRSP 全部记录将被永久删除。\n\n建议先导出备份再执行此操作。')) return;
+  if (!confirm('再次确认：清空后无法恢复，确定继续？')) return;
+  D = newD();
+  save();
+  toast('🗑️ 所有数据已清空');
+  renderSettings();
+}
+
+// ══════════════ MODAL ══════════════
+let _cb = null;
+function modal(title, body, cb) {
+  $('modal-title').textContent = title;
+  $('modal-body').innerHTML = body;
+  _cb = cb;
+  $('modal-overlay').classList.add('open');
+  $('modal-ok').onclick = ()=>{ if(_cb) _cb(); };
+  setTimeout(()=>{ const f=document.querySelector('#modal-body input,#modal-body select'); if(f) f.focus(); }, 80);
+}
+function closeModal() { $('modal-overlay').classList.remove('open'); _cb=null; }
+function onBgClick(e) { if(e.target===$('modal-overlay')) closeModal(); }
+
+// ══════════════ INIT ══════════════
+renderTFSA();
+</script>
+</body>
+</html>
