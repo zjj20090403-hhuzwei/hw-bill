@@ -34,7 +34,7 @@
     font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
     -webkit-text-size-adjust: 100%;
   }
-  body { padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px); overscroll-behavior: none; }
+  body { overscroll-behavior: none; }
 
   /* ── Header ── */
   .hdr {
@@ -102,7 +102,7 @@
   .nav-btn.active { color: var(--primary); }
 
   /* ── Pages ── */
-  .page { display: none; padding: 12px 12px 0; }
+  .page { display: none; padding: 12px 12px calc(var(--nav-h) + var(--safe-bottom) + 20px); }
   .page.active { display: block; }
 
   /* ── Cards ── */
