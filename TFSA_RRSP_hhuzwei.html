@@ -644,67 +644,60 @@ function delTFSAC(p, yr, i) {
 // ══════════════ RRSP ══════════════
 function renderRRSP() {
   const allYrs = (D.rrsp[curPerson].years||[]).slice();
+  const yrsDesc = allYrs.slice().sort((a,b) => b.year - a.year);
 
-  // 按年份升序计算滚动累计
-  const yrsAsc = allYrs.slice().sort((a,b) => a.year - b.year);
-  let _cumNOA = 0, _cumUsed = 0;
-  const cumMap = {};
-  yrsAsc.forEach(yr => {
-    _cumNOA  += Number(yr.noaRoom)||0;
-    _cumUsed += (yr.contributions||[]).reduce((s,c)=>s+(Number(c.amount)||0), 0);
-    cumMap[yr.year] = { cumNOA: _cumNOA, cumUsed: _cumUsed, cumRem: _cumNOA - _cumUsed };
-  });
+  // 累计使用 = 所有年份之和
+  const totalUsed = allYrs.reduce((s,y)=>s+(y.contributions||[]).reduce((cs,c)=>cs+(Number(c.amount)||0),0), 0);
 
-  // 总览 = 最新年度的累计数
-  const totalNOA  = _cumNOA;
-  const totalUsed = _cumUsed;
-  const totalRem  = _cumNOA - _cumUsed;
-  const p = pct(totalUsed, totalNOA);
+  // 总览取最新年度的单年数据
+  const latestYr   = yrsDesc.length ? yrsDesc[0] : null;
+  const latestNOA  = latestYr ? (Number(latestYr.noaRoom)||0) : 0;
+  const latestUsed = latestYr ? (latestYr.contributions||[]).reduce((s,c)=>s+(Number(c.amount)||0),0) : 0;
+  const latestRem  = latestNOA - latestUsed;
+  const p = pct(latestUsed, latestNOA);
   const pname = curPerson==='wei'?'Wei':'Hui';
 
   let h = `
   <div class="card">
     <div class="card-label">RRSP 总览 · ${pname}</div>
     <div class="prog-wrap">
-      <div class="prog-meta"><span>累计已用 <b>${fmt(totalUsed)}</b></span><span>累计总额 <b>${fmt(totalNOA)}</b></span></div>
+      <div class="prog-meta"><span>当年已用 <b>${fmt(latestUsed)}</b></span><span>当年额度 <b>${fmt(latestNOA)}</b></span></div>
       <div class="prog-track"><div class="prog-fill fill-green" style="width:${p}%"></div></div>
     </div>
     <div class="stats-row">
-      <div class="stat-item"><div class="stat-v c-blue">${fmt(totalNOA)}</div><div class="stat-l">累计总额</div></div>
+      <div class="stat-item"><div class="stat-v c-blue">${fmt(latestNOA)}</div><div class="stat-l">当年额度</div></div>
+      <div class="stat-item"><div class="stat-v c-green">${fmt(latestRem)}</div><div class="stat-l">当年剩余</div></div>
       <div class="stat-item"><div class="stat-v c-orange">${fmt(totalUsed)}</div><div class="stat-l">累计已用</div></div>
-      <div class="stat-item"><div class="stat-v c-green">${fmt(totalRem)}</div><div class="stat-l">累计剩余</div></div>
     </div>
   </div>
   <div class="card">
     <div class="card-label">逐年明细（NOA 录入）</div>`;
 
-  const yrsDesc = allYrs.slice().sort((a,b) => b.year - a.year);
-
   if (!yrsDesc.length) {
     h += `<div class="empty-msg">暂无数据<br>从 NOA 获取数据后点击下方按钮录入</div>`;
   } else {
     yrsDesc.forEach(yr => {
-      const cm     = cumMap[yr.year];
       const cs     = yr.contributions||[];
       const yrUsed = cs.reduce((s,c)=>s+(Number(c.amount)||0), 0);
       const selfU  = cs.filter(c=>c.type!=='spousal').reduce((s,c)=>s+(Number(c.amount)||0), 0);
       const spoU   = cs.filter(c=>c.type==='spousal').reduce((s,c)=>s+(Number(c.amount)||0), 0);
       const noa    = Number(yr.noaRoom)||0;
-      const rmC    = cm.cumRem > 0 ? 'pos' : (cm.cumRem < 0 ? 'neg' : '');
+      const yrRem  = noa - yrUsed;
+      const rmC    = yrRem > 0 ? 'pos' : (yrRem < 0 ? 'neg' : '');
 
-      const spoMeta = curPerson==='wei' && spoU > 0
-        ? `<span class="yr-meta-item" style="color:var(--warn)">配偶 <b style="color:var(--warn)">${fmt(spoU)}</b></span>` : '';
+      // 当年使用：若有 spousal 则分行显示
+      const usedMeta = curPerson==='wei' && spoU > 0
+        ? `<span class="yr-meta-item">当年使用 <b>${fmt(yrUsed)}</b> <span style="font-size:10px;color:var(--warn)">（配 ${fmt(spoU)}）</span></span>`
+        : `<span class="yr-meta-item">当年使用 <b>${fmt(yrUsed)}</b></span>`;
 
       h += `
       <div class="yr-block" id="rsp-${curPerson}-${yr.year}">
         <div class="yr-row" onclick="toggleBlock('rsp-${curPerson}-${yr.year}')">
           <span class="yr-num">${yr.year}</span>
           <div class="yr-metas">
-            <span class="yr-meta-item">本年NOA <b>${fmt(noa)}</b></span>
-            <span class="yr-meta-item">累计总额 <b>${fmt(cm.cumNOA)}</b></span>
-            <span class="yr-meta-item">累计已用 <b>${fmt(cm.cumUsed)}</b></span>
-            ${spoMeta}
-            <span class="yr-meta-item">累计剩余 <b class="${rmC}">${fmt(cm.cumRem)}</b></span>
+            <span class="yr-meta-item">当年额度 <b>${fmt(noa)}</b></span>
+            <span class="yr-meta-item">当年剩余 <b class="${rmC}">${fmt(yrRem)}</b></span>
+            ${usedMeta}
           </div>
           <span class="yr-chevron">▶</span>
         </div>
@@ -712,8 +705,8 @@ function renderRRSP() {
           <div class="yr-body-inner">${rrspContribsHTML(yr)}</div>
           <div class="yr-footer">
             <span class="yr-total">
-              本年使用 <b>${fmt(yrUsed)}</b>
-              ${curPerson==='wei' && spoU>0 ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">（自 ${fmt(selfU)} + 配 ${fmt(spoU)}）</span>` : ''}
+              本年合计 <b>${fmt(yrUsed)}</b>
+              ${curPerson==='wei' && spoU>0 ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">自 ${fmt(selfU)} + 配 ${fmt(spoU)}</span>` : ''}
             </span>
             <div class="yr-footer-btns">
               <button class="btn btn-outline btn-sm" onclick="editRRSPYr('${curPerson}',${yr.year})">编辑NOA</button>
@@ -801,14 +794,13 @@ function buildSpousal() {
       <div class="safe-note">※ 归因规则：取出年及前 2 个日历年内有供款将归入 Wei 的收入，最后供款年 + 3 年后方可安全取出。</div>
     </div>`;
 
-    let tbl = `<table class="spousal-table"><thead><tr><th>供款年</th><th>供款合计</th><th>安全取出年</th><th>状态</th></tr></thead><tbody>`;
+    let tbl = `<table class="spousal-table"><thead><tr><th>供款年</th><th>供款合计</th><th>安全取出年</th></tr></thead><tbody>`;
     syrs.forEach(y => {
       const safe = y+3;
       tbl += `<tr>
         <td class="td-yr">${y}</td>
         <td class="td-amt">${fmt(byYear[y])}</td>
         <td class="td-safe">${safe}</td>
-        <td>${now>=safe?'<span class="tag tag-ok" style="font-size:11px">✓ 可取</span>':'<span class="tag tag-warn" style="font-size:11px">⏳ '+safe+'年起</span>'}</td>
       </tr>`;
     });
     tbl += `</tbody></table>`;
