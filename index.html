@@ -391,6 +391,45 @@ function gk(){return"hw-gc"}
 function lGC(){return dG(gk())||[]}
 function sGC(a){dS(gk(),a)}
 
+/* ─── Amex 5X 账单周期 (每月21日 - 下月20日) ─── */
+function getCyclesForMonth(y,m){
+  /* 与日历月 y/m 重叠的两个账单周期 */
+  var py=m===1?y-1:y,pm=m===1?12:m-1;
+  var ny=m===12?y+1:y,nm=m===12?1:m+1;
+  /* 主周期：本月20日截止；次周期：本月21日起始 */
+  return[
+    {sy:py,sm:pm,sd:21,ey:y,em:m,ed:20,lb:'主'},
+    {sy:y,sm:m,sd:21,ey:ny,em:nm,ed:20,lb:'次'}
+  ];
+}
+function calc5XCycle(c){
+  var total=0,count=0,gcAmt=0;
+  var months=[];
+  if(c.sy===c.ey&&c.sm===c.em){months.push({y:c.sy,m:c.sm,dmin:c.sd,dmax:c.ed})}
+  else{months.push({y:c.sy,m:c.sm,dmin:c.sd,dmax:31});months.push({y:c.ey,m:c.em,dmin:1,dmax:c.ed})}
+  months.forEach(function(mr){
+    var entries=dG(sk(mr.y,mr.m))||[];
+    entries.forEach(function(x){
+      if(x.cat==="5x"&&x.day>=mr.dmin&&x.day<=mr.dmax){
+        total+=x.amt;count++;
+        if(x.cards)x.cards.forEach(function(cd){gcAmt+=cd.denom*cd.qty});
+      }
+    });
+  });
+  return{total:total,count:count,gcAmt:gcAmt};
+}
+function fmtCycle(c){
+  /* 跨年时显示年份；同年时只显示月/日 */
+  if(c.sy!==c.ey)return c.sm+'/'+c.sd+'/'+String(c.sy).slice(2)+' - '+c.em+'/'+c.ed+'/'+String(c.ey).slice(2);
+  return c.sm+'/'+c.sd+' - '+c.em+'/'+c.ed;
+}
+function isCycleActive(c){
+  /* 今天是否落在该周期内 */
+  var n=new Date(),ny=n.getFullYear(),nm=n.getMonth()+1,nd=n.getDate();
+  var s=new Date(c.sy,c.sm-1,c.sd),e=new Date(c.ey,c.em-1,c.ed),t=new Date(ny,nm-1,nd);
+  return t>=s&&t<=e;
+}
+
 /* ─── Toast ─── */
 var tt;
 function toast(m){var e=document.getElementById("tst");e.textContent=m;e.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){e.classList.remove("show")},2200)}
@@ -491,6 +530,23 @@ function rM(){
 
   var t5=catT["5x"],is5A=S.fCat==="5x",rc5=over?"#E85D4A":"#E8B931";
   h+='<div class="cd" onclick="tgF(\'5x\')" style="padding:14px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;gap:14px;'+(is5A?'border-color:#E8B93140;background:rgba(255,255,255,0.06)':'')+'"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:18px">🛒</span><span style="font-size:16px;font-weight:700;color:#E8B931">5X</span><span style="font-size:13px;color:rgba(255,255,255,0.55)">餐饮/超市</span></div><div style="display:flex;gap:16px;align-items:baseline;margin-bottom:6px"><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace">'+fm(t5.s)+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">'+t5.n+'笔</div></div><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+t5.p.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">积分</div></div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:rgba(255,255,255,0.55)">'+(over?'超额':'剩余')+'</span><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:'+rc5+'">'+fm(over?f5-LIM:rem)+'</span><span style="font-size:11px;color:rgba(255,255,255,0.6)">/ 月限$2,500</span></div></div><div style="flex-shrink:0">'+ring(f5,LIM,80)+'</div></div>';
+
+  /* ─── 5X 账单周期模块 ─── */
+  var cycles=getCyclesForMonth(S.y,S.mo);
+  h+='<div class="cd" style="padding:14px;margin-bottom:8px">';
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><span style="font-size:16px">🎯</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Amex 5X 积分周期额度</span><span style="font-size:10px;color:rgba(255,255,255,0.4);margin-left:auto;font-family:DM Mono,monospace">21日起算</span></div>';
+  cycles.forEach(function(cy,idx){
+    var d=calc5XCycle(cy),pct=Math.min(d.total/LIM,1)*100,ov=d.total>LIM,active=isCycleActive(cy);
+    var col=ov?"#E85D4A":(pct>85?"#E85D4A":(active?"#E8B931":"#7B8CDE"));
+    var rem=Math.max(LIM-d.total,0);
+    h+='<div style="margin-bottom:'+(idx===cycles.length-1?'0':'12px')+';'+(active?'background:rgba(232,185,49,0.05);border-radius:8px;padding:8px;margin-left:-8px;margin-right:-8px':'')+'">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);font-family:DM Mono,monospace">'+fmtCycle(cy)+'</span>'+(active?'<span style="font-size:10px;font-weight:700;color:#E8B931;background:rgba(232,185,49,0.15);padding:1px 6px;border-radius:3px">进行中</span>':'<span style="font-size:10px;color:rgba(255,255,255,0.4)">'+cy.lb+'周期</span>')+'</div><div style="text-align:right"><span style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:'+col+'">'+fm(d.total)+'</span><span style="font-size:11px;color:rgba(255,255,255,0.45);margin-left:3px">/ $'+LIM+'</span></div></div>';
+    h+='<div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;margin-bottom:4px"><div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:3px;transition:width .4s"></div></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.55)"><span>'+d.count+' 笔'+(d.gcAmt>0?' · 含购物卡 '+fm(d.gcAmt):'')+'</span><span style="color:'+(ov?'#E85D4A':'rgba(255,255,255,0.65)')+';font-family:DM Mono,monospace">'+(ov?'超 '+fm(d.total-LIM):'剩 '+fm(rem))+'</span></div>';
+    h+='</div>';
+  });
+  h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);font-size:11px;color:rgba(255,255,255,0.4);line-height:1.5">月度统计按日历月 · 5X 额度按 Amex 周期</div>';
+  h+='</div>';
 
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">';
   ["3x","2x","1x"].forEach(function(k){
