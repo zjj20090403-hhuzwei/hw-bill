@@ -528,9 +528,9 @@ function rM(){
 
   h+='<div style="padding:6px 16px 10px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">分区统计 <span style="font-size:12px;font-weight:400">点击筛选</span></div>';
 
-  /* ─── 5X 账单周期模块 ─── */
-  var cycles=getCyclesForMonth(S.y,S.mo);
-  h+='<div class="cd" style="padding:14px;margin-bottom:8px">';
+  /* ─── 5X 账单周期模块 (点击筛选5X交易) ─── */
+  var cycles=getCyclesForMonth(S.y,S.mo),is5A=S.fCat==="5x";
+  h+='<div class="cd" onclick="tgF(\'5x\')" style="padding:14px;margin-bottom:8px;cursor:pointer;'+(is5A?'border-color:#E8B93140;background:rgba(255,255,255,0.06)':'')+'">';
   h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><span style="font-size:16px">🎯</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Amex 5X 积分周期额度</span><span style="font-size:10px;color:rgba(255,255,255,0.4);margin-left:auto;font-family:DM Mono,monospace">21日起算</span></div>';
   cycles.forEach(function(cy,idx){
     var d=calc5XCycle(cy),pct=Math.min(d.total/LIM,1)*100,ov=d.total>LIM,active=isCycleActive(cy);
