@@ -528,9 +528,6 @@ function rM(){
 
   h+='<div style="padding:6px 16px 10px"><div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:8px">分区统计 <span style="font-size:12px;font-weight:400">点击筛选</span></div>';
 
-  var t5=catT["5x"],is5A=S.fCat==="5x",rc5=over?"#E85D4A":"#E8B931";
-  h+='<div class="cd" onclick="tgF(\'5x\')" style="padding:14px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;gap:14px;'+(is5A?'border-color:#E8B93140;background:rgba(255,255,255,0.06)':'')+'"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:18px">🛒</span><span style="font-size:16px;font-weight:700;color:#E8B931">5X</span><span style="font-size:13px;color:rgba(255,255,255,0.55)">餐饮/超市</span></div><div style="display:flex;gap:16px;align-items:baseline;margin-bottom:6px"><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace">'+fm(t5.s)+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">'+t5.n+'笔</div></div><div><div style="font-size:19px;font-weight:700;font-family:DM Mono,monospace;color:#E8B931">'+t5.p.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">积分</div></div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:rgba(255,255,255,0.55)">'+(over?'超额':'剩余')+'</span><span style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;color:'+rc5+'">'+fm(over?f5-LIM:rem)+'</span><span style="font-size:11px;color:rgba(255,255,255,0.6)">/ 月限$2,500</span></div></div><div style="flex-shrink:0">'+ring(f5,LIM,80)+'</div></div>';
-
   /* ─── 5X 账单周期模块 ─── */
   var cycles=getCyclesForMonth(S.y,S.mo);
   h+='<div class="cd" style="padding:14px;margin-bottom:8px">';
