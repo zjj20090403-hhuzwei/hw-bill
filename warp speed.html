@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="曲速">
+<title>曲速</title>
+<style>
+:root {
+  --bg:  #0f172a;
+  --bg2: #1e293b;
+  --bg3: #273548;
+  --bd:  #334155;
+  --txt: #f1f5f9;
+  --mut: #94a3b8;
+  --hnt: #64748b;
+  --c11: #60a5fa;
+  --c8:  #34d399;
+  --c6:  #fbbf24;
+  --c4:  #f87171;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: max(env(safe-area-inset-top), 16px) 15px max(env(safe-area-inset-bottom), 24px);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Header */
+.hd { text-align: center; padding: 14px 0 20px; }
+.hd h1 {
+  font-size: 28px; font-weight: 700; letter-spacing: 0.03em;
+  background: linear-gradient(130deg, #34d399 0%, #60a5fa 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hd p { font-size: 11px; color: var(--mut); margin-top: 5px; letter-spacing: 0.02em; }
+
+/* Sliders */
+.sliders { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.ctrl { background: var(--bg2); border-radius: 14px; padding: 13px 15px; }
+.ctrl-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.ctrl-label { font-size: 11px; color: var(--mut); }
+.ctrl-val { font-size: 17px; font-weight: 600; color: var(--txt); }
+input[type=range] {
+  width: 100%; height: 4px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--bd); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px;
+  background: var(--c11); border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(96,165,250,0.18);
+}
+
+/* Param strip */
+.pstrip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+.pi { background: var(--bg2); border-radius: 10px; padding: 9px 10px; text-align: center; }
+.pi-lbl { font-size: 9px; color: var(--hnt); text-transform: uppercase; letter-spacing: 0.04em; }
+.pi-val { font-size: 14px; font-weight: 600; margin-top: 3px; color: var(--txt); }
+
+/* Scenario cards */
+.scards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.sc { background: var(--bg2); border-radius: 12px; padding: 11px 12px; border-left: 3px solid; }
+.sc-lbl { font-size: 9px; color: var(--mut); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em; }
+.sc-val { font-size: 20px; font-weight: 700; line-height: 1; }
+.sc-sub { font-size: 10px; color: var(--mut); margin-top: 5px; }
+
+/* Chart */
+.chart-box { background: var(--bg2); border-radius: 14px; padding: 12px 12px 10px; margin-bottom: 14px; }
+.chart-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.chart-title { font-size: 11px; color: var(--mut); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--hnt); }
+.leg-sq { width: 12px; height: 3px; border-radius: 1px; flex-shrink: 0; }
+.chart-canvas-wrap { position: relative; height: 210px; margin-top: 8px; }
+
+/* Result cards */
+.rcards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.rc { background: var(--bg2); border-radius: 12px; padding: 11px 12px; }
+.rc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.rc-name { font-size: 12px; font-weight: 600; }
+.rc-tag { font-size: 9px; padding: 2px 6px; border-radius: 5px; font-weight: 500; }
+.tok { background: rgba(52,211,153,0.14); color: #34d399; }
+.twarn { background: rgba(251,191,36,0.14); color: #fbbf24; }
+.tbad { background: rgba(248,113,113,0.14); color: #f87171; }
+.rrow { display: flex; justify-content: space-between; font-size: 11px; padding: 3.5px 0; border-bottom: 1px solid var(--bd); }
+.rrow:last-child { border-bottom: none; }
+.rrow .age { color: var(--hnt); }
+
+/* Footer note */
+.fnote { background: var(--bg2); border-radius: 12px; padding: 11px 13px; font-size: 10px; color: var(--hnt); line-height: 1.7; }
+.fnote strong { color: var(--mut); }
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>曲速</h1>
+  <p>XEQT · 全球股票 · 退休复利规划 · 47→95岁</p>
+</div>
+
+<div class="sliders">
+  <div class="ctrl">
+    <div class="ctrl-top">
+      <span class="ctrl-label">初始投入金额</span>
+      <span class="ctrl-val" id="v-init">$600K</span>
+    </div>
+    <input type="range" id="s-init" min="100000" max="2000000" step="50000" value="600000">
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-top">
+      <span class="ctrl-label">从47岁起积累年数（不提款）</span>
+      <span class="ctrl-val" id="v-accum">5年（52岁起提）</span>
+    </div>
+    <input type="range" id="s-accum" min="0" max="20" step="1" value="5">
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-top">
+      <span class="ctrl-label">初始月提款金额（之后随通胀递增）</span>
+      <span class="ctrl-val" id="v-wd">$3,000</span>
+    </div>
+    <input type="range" id="s-wd" min="500" max="10000" step="100" value="3000">
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-top">
+      <span class="ctrl-label">年通胀率（提款每年自动递增）</span>
+      <span class="ctrl-val" id="v-inf">2.0%</span>
+    </div>
+    <input type="range" id="s-inf" min="0" max="6" step="0.5" value="2">
+  </div>
+</div>
+
+<div class="pstrip" id="pstrip"></div>
+<div class="scards" id="scards"></div>
+
+<div class="chart-box">
+  <div class="chart-hd">
+    <span class="chart-title">组合市值（47→95岁）</span>
+    <div class="legend">
+      <div class="leg"><div class="leg-sq" style="background:#60a5fa"></div>11%</div>
+      <div class="leg"><div class="leg-sq" style="background:#34d399"></div>8%</div>
+      <div class="leg"><div class="leg-sq" style="background:#fbbf24"></div>6%</div>
+      <div class="leg"><div class="leg-sq" style="background:#f87171"></div>4%</div>
+    </div>
+  </div>
+  <div class="chart-canvas-wrap">
+    <canvas id="chart" role="img" aria-label="XEQT四种收益率情景下47至95岁组合市值折线图"></canvas>
+  </div>
+</div>
+
+<div class="rcards" id="rcards"></div>
+
+<div class="fnote">
+  <strong>收益率校正</strong>：XEQT 2020–2025 历史 CAGR 13.12%（AI/疫情异常期），结合 Vanguard 2026 前瞻（全球股票 5–7%/年）及 MSCI World 百年均值（8.9%），校正为 4 / 6 / 8 / 11% 四档。月提款为第一个月金额，此后按通胀率逐年递增维持购买力。XEQT MER 0.20% 已计入收益率估算。
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ── Icon generation ── */
+(function () {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const x = c.getContext('2d');
+
+    /* ── clip to rounded square ── */
+    x.save();
+    if (x.roundRect) { x.beginPath(); x.roundRect(0,0,180,180,36); x.clip(); }
+
+    /* ── background: Amex navy gradient ── */
+    const bgG = x.createLinearGradient(36,0,144,180);
+    bgG.addColorStop(0,'#1A52C0'); bgG.addColorStop(1,'#001028');
+    x.fillStyle = bgG; x.fillRect(0,0,180,180);
+
+    /* ── ambient depth layers ── */
+    const topG = x.createLinearGradient(0,0,0,80);
+    topG.addColorStop(0,'rgba(42,94,208,0.24)'); topG.addColorStop(1,'rgba(42,94,208,0)');
+    x.fillStyle = topG; x.fillRect(0,0,180,80);
+
+    const leftG = x.createLinearGradient(0,0,28,0);
+    leftG.addColorStop(0,'rgba(42,85,197,0.2)'); leftG.addColorStop(1,'rgba(42,85,197,0)');
+    x.fillStyle = leftG; x.fillRect(0,0,28,180);
+
+    const rightG = x.createLinearGradient(152,0,180,0);
+    rightG.addColorStop(0,'rgba(0,10,30,0)'); rightG.addColorStop(1,'rgba(0,10,30,0.28)');
+    x.fillStyle = rightG; x.fillRect(152,0,28,180);
+
+    const botG = x.createLinearGradient(0,152,0,180);
+    botG.addColorStop(0,'rgba(0,10,30,0)'); botG.addColorStop(1,'rgba(0,10,30,0.22)');
+    x.fillStyle = botG; x.fillRect(0,152,180,28);
+
+    /* ── dashed grid ── */
+    x.strokeStyle='#2A6FD8'; x.lineWidth=0.5; x.setLineDash([3,5]);
+    [75,107,139].forEach(y=>{ x.beginPath(); x.moveTo(22,y); x.lineTo(158,y); x.stroke(); });
+    [62,102,142].forEach(gx=>{ x.beginPath(); x.moveTo(gx,20); x.lineTo(gx,158); x.stroke(); });
+    x.setLineDash([]);
+
+    /* ── axes ── */
+    x.strokeStyle='#4A90E8'; x.lineWidth=1.5; x.lineCap='round';
+    x.beginPath(); x.moveTo(22,158); x.lineTo(22,20); x.stroke();
+    x.beginPath(); x.moveTo(22,158); x.lineTo(158,158); x.stroke();
+
+    /* ── area fill under curve ── */
+    const areaG = x.createLinearGradient(32,148,160,20);
+    areaG.addColorStop(0,'rgba(180,135,0,0.14)'); areaG.addColorStop(1,'rgba(245,220,112,0.04)');
+    x.fillStyle = areaG;
+    x.beginPath(); x.moveTo(32,148);
+    x.bezierCurveTo(62,144,88,116,110,88);
+    x.bezierCurveTo(132,58,148,32,160,20);
+    x.lineTo(160,158); x.lineTo(32,158); x.closePath(); x.fill();
+
+    /* ── curve shadow ── */
+    x.strokeStyle='rgba(30,15,0,0.52)'; x.lineWidth=7; x.lineCap='round';
+    x.beginPath(); x.moveTo(34,151);
+    x.bezierCurveTo(64,147,90,119,112,91);
+    x.bezierCurveTo(134,61,150,35,162,23); x.stroke();
+
+    /* ── main curve: Amex gold ── */
+    const goldG = x.createLinearGradient(32,148,160,20);
+    goldG.addColorStop(0,'#9A6A00'); goldG.addColorStop(0.5,'#D4A820'); goldG.addColorStop(1,'#F5DC70');
+    x.strokeStyle=goldG; x.lineWidth=4; x.lineCap='round';
+    x.beginPath(); x.moveTo(32,148);
+    x.bezierCurveTo(62,144,88,116,110,88);
+    x.bezierCurveTo(132,58,148,32,160,20); x.stroke();
+
+    /* ── curve specular highlight ── */
+    x.strokeStyle='rgba(255,255,255,0.28)'; x.lineWidth=1.4;
+    x.beginPath(); x.moveTo(32,147);
+    x.bezierCurveTo(62,143,88,115,110,87);
+    x.bezierCurveTo(132,57,148,31,160,19); x.stroke();
+
+    /* ── start dot (gold layered) ── */
+    x.fillStyle='#9A6A00'; x.beginPath(); x.arc(32,148,7,0,Math.PI*2); x.fill();
+    x.fillStyle='#D4A820'; x.beginPath(); x.arc(32,148,5,0,Math.PI*2); x.fill();
+    x.fillStyle='#F5DC70'; x.beginPath(); x.arc(32,148,2.8,0,Math.PI*2); x.fill();
+    x.fillStyle='rgba(255,255,255,0.7)'; x.beginPath(); x.arc(31,147,1.3,0,Math.PI*2); x.fill();
+
+    /* ── end dot (white-gold) ── */
+    x.fillStyle='#C4900A'; x.beginPath(); x.arc(160,20,7,0,Math.PI*2); x.fill();
+    x.fillStyle='#F0CE50'; x.beginPath(); x.arc(160,20,5,0,Math.PI*2); x.fill();
+    x.fillStyle='rgba(255,255,255,0.92)'; x.beginPath(); x.arc(160,20,2.8,0,Math.PI*2); x.fill();
+    x.fillStyle='white'; x.beginPath(); x.arc(159,19,1.3,0,Math.PI*2); x.fill();
+
+    /* ── glass overlay ── */
+    const glassG = x.createLinearGradient(0,0,0,90);
+    glassG.addColorStop(0,'rgba(255,255,255,0.13)');
+    glassG.addColorStop(0.55,'rgba(255,255,255,0.03)');
+    glassG.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=glassG; x.fillRect(0,0,180,90);
+
+    /* top shine stripe */
+    x.fillStyle='rgba(255,255,255,0.13)';
+    x.beginPath();
+    if (x.roundRect) { x.roundRect(15,4,128,18,5); } else { x.rect(15,4,128,18); }
+    x.fill();
+
+    /* left rim light */
+    x.fillStyle='rgba(255,255,255,0.09)'; x.fillRect(0,46,3.5,92);
+
+    x.restore();
+
+    /* ── outer rim stroke ── */
+    x.strokeStyle='rgba(255,255,255,0.22)'; x.lineWidth=1;
+    if (x.roundRect) { x.beginPath(); x.roundRect(0,0,180,180,36); x.stroke(); }
+
+    /* ── top edge highlight ── */
+    x.strokeStyle='rgba(255,255,255,0.52)'; x.lineWidth=1.8; x.lineCap='round';
+    x.beginPath(); x.moveTo(44,1); x.lineTo(136,1); x.stroke();
+
+    /* ── inject icon ── */
+    const lnk = document.createElement('link');
+    lnk.rel = 'apple-touch-icon';
+    lnk.href = c.toDataURL('image/png');
+    document.head.appendChild(lnk);
+  } catch (e) {}
+})();
+
+/* ── Model constants ── */
+const SA = 47, MAX = 95, TOT = MAX - SA;
+const RATES  = [0.11, 0.08, 0.06, 0.04];
+const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171'];
+const NAMES  = ['乐观 11%', '基准 8%', '保守 6%', '悲观 4%'];
+const BASES  = ['近5年CAGR下限', 'MSCI World百年均值', 'Vanguard前瞻中枢', '深度衰退情景'];
+
+function simulate(init, accum, rate, wd0, inf) {
+  let port = init;
+  const data = [];
+  const wdAge = SA + accum;
+  for (let y = 0; y <= TOT; y++) {
+    data.push(Math.max(0, Math.round(port)));
+    const age = SA + y;
+    if (age >= wdAge) {
+      port = port * (1 + rate) - wd0 * 12 * Math.pow(1 + inf, age - wdAge);
+    } else {
+      port = port * (1 + rate);
+    }
+    if (port < 0) { while (data.length <= TOT) data.push(0); break; }
+  }
+  return data;
+}
+
+function depAge(d) {
+  const i = d.findIndex(v => v === 0);
+  return i === -1 ? null : SA + i;
+}
+
+function fv(n) {
+  if (n <= 0) return '耗尽';
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  return '$' + Math.round(n / 1000) + 'K';
+}
+function fi(n) { return n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : '$' + Math.round(n / 1000) + 'K'; }
+
+/* ── Chart ── */
+let chart, pluginDone = false;
+
+function registerPlugin() {
+  if (pluginDone) return;
+  pluginDone = true;
+  Chart.register({
+    id: 'qsShade',
+    beforeDraw(c) {
+      const { ctx, chartArea: ca, scales: sc } = c;
+      if (!sc.x || !ca) return;
+      const ai = c._aIdx || 0;
+      if (ai <= 0) return;
+      const x0 = sc.x.getPixelForValue(0);
+      const x1 = sc.x.getPixelForValue(ai);
+      ctx.save();
+      ctx.fillStyle = 'rgba(96,165,250,0.06)';
+      ctx.fillRect(x0, ca.top, x1 - x0, ca.bottom - ca.top);
+      ctx.beginPath(); ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = 'rgba(96,165,250,0.35)'; ctx.lineWidth = 1;
+      ctx.moveTo(x1, ca.top); ctx.lineTo(x1, ca.bottom); ctx.stroke();
+      ctx.setLineDash([]); ctx.restore();
+    }
+  });
+}
+
+/* ── Main update ── */
+function update() {
+  const init  = +document.getElementById('s-init').value;
+  const accum = +document.getElementById('s-accum').value;
+  const wd    = +document.getElementById('s-wd').value;
+  const inf   = +document.getElementById('s-inf').value / 100;
+  const wdAge = SA + accum;
+
+  document.getElementById('v-init').textContent  = fi(init);
+  document.getElementById('v-accum').textContent = accum === 0 ? '0年（立即提款）' : accum + '年（' + wdAge + '岁起提）';
+  document.getElementById('v-wd').textContent    = '$' + wd.toLocaleString('zh-CN');
+  document.getElementById('v-inf').textContent   = (inf * 100).toFixed(1) + '%';
+
+  const gA = RATES.map(r => init * Math.pow(1 + r, accum));
+
+  /* Param strip */
+  document.getElementById('pstrip').innerHTML = `
+    <div class="pi"><div class="pi-lbl">积累期</div><div class="pi-val">${accum} 年</div></div>
+    <div class="pi"><div class="pi-lbl">开始提款</div><div class="pi-val">${wdAge} 岁</div></div>
+    <div class="pi"><div class="pi-lbl">提款期</div><div class="pi-val">${Math.max(0, MAX - wdAge)} 年</div></div>
+  `;
+
+  /* Scenario cards */
+  document.getElementById('scards').innerHTML = RATES.map((r, i) => `
+    <div class="sc" style="border-color:${COLORS[i]}">
+      <div class="sc-lbl">${NAMES[i]} · ${wdAge}岁本金</div>
+      <div class="sc-val" style="color:${COLORS[i]}">${fv(gA[i])}</div>
+      <div class="sc-sub">4%法则月提 $${Math.round(gA[i] * 0.04 / 12).toLocaleString('zh-CN')}</div>
+    </div>
+  `).join('');
+
+  /* Simulate */
+  const series = RATES.map(r => simulate(init, accum, r, wd, inf));
+  const deps   = series.map(depAge);
+  const ages   = Array.from({ length: TOT + 1 }, (_, i) => String(SA + i));
+
+  /* Chart datasets */
+  const datasets = series.map((s, i) => ({
+    label: NAMES[i], data: s,
+    borderColor: COLORS[i], backgroundColor: 'transparent',
+    borderWidth: i <= 1 ? 2 : 1.5,
+    borderDash: i >= 2 ? [5, 4] : [],
+    pointRadius: 0, tension: 0.25
+  }));
+
+  registerPlugin();
+
+  if (chart) {
+    chart.data.labels = ages;
+    datasets.forEach((ds, i) => { chart.data.datasets[i].data = ds.data; });
+    chart._aIdx = accum;
+    chart.update('none');
+  } else {
+    chart = new Chart(document.getElementById('chart'), {
+      type: 'line',
+      data: { labels: ages, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => items[0].label + '岁',
+              label: ctx => ' ' + ctx.dataset.label + ': ' + fv(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 8, autoSkip: true }
+          },
+          y: {
+            min: 0,
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: {
+              color: '#64748b', font: { size: 9 },
+              callback: v => {
+                if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+                if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+                return '$' + Math.round(v / 1000) + 'K';
+              }
+            }
+          }
+        }
+      }
+    });
+    chart._aIdx = accum;
+  }
+
+  /* Result cards */
+  const cps = [...new Set([wdAge, 65, 75, 85, 95].filter(a => a >= SA && a <= MAX))];
+  document.getElementById('rcards').innerHTML = RATES.map((r, i) => {
+    const da  = deps[i];
+    const cls = da === null ? 'tok' : (da >= 82 ? 'twarn' : 'tbad');
+    const stx = da === null ? '持续95岁+' : da + '岁耗尽';
+    const rows = cps.map(a => {
+      const v = series[i][a - SA];
+      return `<div class="rrow"><span class="age">${a}岁</span><span style="color:${COLORS[i]};font-weight:600">${fv(v)}</span></div>`;
+    }).join('');
+    return `<div class="rc">
+      <div class="rc-head">
+        <span class="rc-name" style="color:${COLORS[i]}">${NAMES[i]}</span>
+        <span class="rc-tag ${cls}">${stx}</span>
+      </div>
+      ${rows}
+      <div style="font-size:9px;color:var(--hnt);margin-top:6px">${BASES[i]}</div>
+    </div>`;
+  }).join('');
+}
+
+['s-init','s-accum','s-wd','s-inf'].forEach(id =>
+  document.getElementById(id).addEventListener('input', update)
+);
+update();
+</script>
+</body>
+</html>
