@@ -447,11 +447,12 @@ function vInit(){
   const img=vEl('viewer-img'), st=vEl('viewer-stage');
   V.cw=st.clientWidth; V.ch=st.clientHeight;
   if(!img.naturalWidth||!V.cw) return;
-  // 初始：完整页面适配屏幕（contain）——竖屏=适配宽度，横屏=适配高度，效果一致
-  const fit=Math.min(V.cw/img.naturalWidth, V.ch/img.naturalHeight);
-  V.bw=img.naturalWidth*fit; V.bh=img.naturalHeight*fit;
+  // 初始：横竖屏一律适配宽度（与竖屏阅读效果一致），上下滚动浏览
+  V.bw=V.cw; V.bh=V.cw*img.naturalHeight/img.naturalWidth;
   img.style.width=V.bw+'px'; img.style.height=V.bh+'px';
-  V.s=1; V.tx=(V.cw-V.bw)/2; V.ty=(V.ch-V.bh)/2;
+  // 允许捏合缩小到整页可见（contain），不再往下
+  V.min=Math.min(1, V.ch/V.bh, V.cw/V.bw);
+  V.s=1; V.tx=0; V.ty=Math.max(0,(V.ch-V.bh)/2);
   vClamp(); vApply(false);
 }
 function vApply(anim){
@@ -493,7 +494,7 @@ function vZoomAt(px,py,ns,anim){
     if(e.touches.length===2&&pinch){
       const m=mid(e.touches);
       let ns=pinch.s*dist(e.touches)/pinch.d;
-      ns=Math.min(V.max,Math.max(.6,ns));            // 捏合过程允许轻微回弹
+      ns=Math.min(V.max,Math.max(V.min*.7,ns));      // 捏合过程允许轻微回弹
       const k=ns/pinch.s;
       V.s=ns;
       V.tx=m.x-(pinch.m.x-pinch.tx)*k;
@@ -502,13 +503,14 @@ function vZoomAt(px,py,ns,anim){
     }else if(e.touches.length===1&&pan){
       const t=e.touches[0], dx=t.clientX-pan.x, dy=t.clientY-pan.y;
       if(Math.abs(dx)+Math.abs(dy)>8) pan.moved=true;
-      if(V.s>1.01){ V.tx=pan.tx+dx; V.ty=pan.ty+dy; vClamp(); vApply(false); }
+      if(V.bw*V.s>V.cw+1 || V.bh*V.s>V.ch+1){
+        V.tx=pan.tx+dx; V.ty=pan.ty+dy; vClamp(); vApply(false); }
     }
   },{passive:false});
 
   st.addEventListener('touchend',e=>{
     if(pinch&&e.touches.length<2){
-      if(V.s<1){ V.s=1; }                            // 回弹到适配大小
+      if(V.s<V.min){ V.s=V.min; }                    // 回弹到最小可见比例
       vClamp(); vApply(true);
       pinch=null;
       if(e.touches.length===1){ const t=e.touches[0];
@@ -520,7 +522,7 @@ function vZoomAt(px,py,ns,anim){
         const px=pan.x, py=pan.y;
         if(now-lastTap<300&&Math.hypot(px-tapX,py-tapY)<40){
           // 双击：放大2.5倍 / 还原
-          if(V.s>1.1) vZoomAt(px,py,1,true); else vZoomAt(px,py,2.5,true);
+          if(V.s>1.05) vZoomAt(px,py,1,true); else vZoomAt(px,py,2.5,true);
           lastTap=0;
         }else{ lastTap=now; tapX=px; tapY=py; }
       }
@@ -534,12 +536,12 @@ function vZoomAt(px,py,ns,anim){
     vZoomAt(e.clientX,e.clientY,V.s*(e.deltaY<0?1.15:0.87),false);
   },{passive:false});
   st.addEventListener('dblclick',e=>{
-    if(V.s>1.1) vZoomAt(e.clientX,e.clientY,1,true); else vZoomAt(e.clientX,e.clientY,2.5,true);
+    if(V.s>1.05) vZoomAt(e.clientX,e.clientY,1,true); else vZoomAt(e.clientX,e.clientY,2.5,true);
   });
   let mdrag=null;
   st.addEventListener('mousedown',e=>{ mdrag={x:e.clientX,y:e.clientY,tx:V.tx,ty:V.ty}; });
   st.addEventListener('mousemove',e=>{
-    if(mdrag&&V.s>1.01){ V.tx=mdrag.tx+e.clientX-mdrag.x; V.ty=mdrag.ty+e.clientY-mdrag.y; vClamp(); vApply(false); }
+    if(mdrag&&(V.bw*V.s>V.cw+1||V.bh*V.s>V.ch+1)){ V.tx=mdrag.tx+e.clientX-mdrag.x; V.ty=mdrag.ty+e.clientY-mdrag.y; vClamp(); vApply(false); }
   });
   ['mouseup','mouseleave'].forEach(ev=>st.addEventListener(ev,()=>mdrag=null));
   const refit=()=>{ if(vEl('viewer').style.display==='block') vInit(); };
