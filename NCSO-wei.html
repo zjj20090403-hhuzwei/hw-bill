@@ -447,10 +447,11 @@ function vInit(){
   const img=vEl('viewer-img'), st=vEl('viewer-stage');
   V.cw=st.clientWidth; V.ch=st.clientHeight;
   if(!img.naturalWidth||!V.cw) return;
-  // 初始：适配宽度（页面为竖版，宽度撑满最适合阅读）
-  V.bw=V.cw; V.bh=V.cw*img.naturalHeight/img.naturalWidth;
+  // 初始：完整页面适配屏幕（contain）——竖屏=适配宽度，横屏=适配高度，效果一致
+  const fit=Math.min(V.cw/img.naturalWidth, V.ch/img.naturalHeight);
+  V.bw=img.naturalWidth*fit; V.bh=img.naturalHeight*fit;
   img.style.width=V.bw+'px'; img.style.height=V.bh+'px';
-  V.s=1; V.tx=0; V.ty=Math.max(0,(V.ch-V.bh)/2);
+  V.s=1; V.tx=(V.cw-V.bw)/2; V.ty=(V.ch-V.bh)/2;
   vClamp(); vApply(false);
 }
 function vApply(anim){
@@ -541,7 +542,10 @@ function vZoomAt(px,py,ns,anim){
     if(mdrag&&V.s>1.01){ V.tx=mdrag.tx+e.clientX-mdrag.x; V.ty=mdrag.ty+e.clientY-mdrag.y; vClamp(); vApply(false); }
   });
   ['mouseup','mouseleave'].forEach(ev=>st.addEventListener(ev,()=>mdrag=null));
-  window.addEventListener('resize',()=>{ if(vEl('viewer').style.display==='block') vInit(); });
+  const refit=()=>{ if(vEl('viewer').style.display==='block') vInit(); };
+  // 旋转后 iOS 尺寸更新有延迟，多次重适配确保横竖屏显示一致
+  window.addEventListener('resize',()=>{ refit(); setTimeout(refit,120); });
+  window.addEventListener('orientationchange',()=>{ setTimeout(refit,150); setTimeout(refit,400); });
 })();
 
 function updateProg(){
