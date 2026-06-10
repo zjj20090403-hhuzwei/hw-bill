@@ -100,6 +100,7 @@ input[type=range]::-webkit-slider-thumb {
 /* Footer note */
 .fnote { background: var(--bg2); border-radius: 12px; padding: 11px 13px; font-size: 10px; color: var(--hnt); line-height: 1.7; }
 .fnote strong { color: var(--mut); }
+.fnote + .fnote { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -161,7 +162,10 @@ input[type=range]::-webkit-slider-thumb {
 <div class="rcards" id="rcards"></div>
 
 <div class="fnote">
-  <strong>收益率校正</strong>：XEQT 2020–2025 历史 CAGR 13.12%（AI/疫情异常期），结合 Vanguard 2026 前瞻（全球股票 5–7%/年）及 MSCI World 百年均值（8.9%），校正为 4 / 6 / 8 / 11% 四档。月提款为第一个月金额，此后按通胀率逐年递增维持购买力。XEQT MER 0.20% 已计入收益率估算。
+  <strong>收益率依据（数据截至2026年5月）</strong>：XEQT 成立于2019年8月，成立以来年化约14.4%、近5年年化约12%（CAD，已扣除 MER 0.20%，含2020–21及AI行情等异常牛市年份）。MSCI World 1986–2025 年化约8.9%（USD总回报）。Vanguard 2026年展望（未来10年名义年化）：美股 4–5%、非美发达市场股票 4.9–6.9%。据此设 4 / 6 / 8 / 11% 四档名义收益情景。
+</div>
+<div class="fnote">
+  <strong>模型假设</strong>：提款按月扣除、按月复利模拟，首月为所设金额、此后逐年随通胀递增以维持购买力。固定收益率不反映市场波动与回报顺序风险——提款期早段遇熊市时，实际耗尽年龄可能明显早于图示。未计税费，适用于 TFSA / RRSP 等税收优惠账户。本工具仅供教育参考，不构成投资建议。
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -290,21 +294,30 @@ const SA = 47, MAX = 95, TOT = MAX - SA;
 const RATES  = [0.11, 0.08, 0.06, 0.04];
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171'];
 const NAMES  = ['乐观 11%', '基准 8%', '保守 6%', '悲观 4%'];
-const BASES  = ['近5年CAGR下限', 'MSCI World百年均值', 'Vanguard前瞻中枢', '深度衰退情景'];
+const BASES  = [
+  '近5年CAGR≈12%，略下调',
+  'MSCI World 1986–2025均值8.9%',
+  'Vanguard前瞻上沿（非美4.9–6.9%）',
+  '深度衰退 / 长期低迷情景'
+];
 
+/* 按月复利、按月提款模拟：
+   数组第 y 项 = (SA+y) 岁年初市值；提款自 wdAge 岁起每月月末扣除，
+   金额每满一年按通胀率递增。 */
 function simulate(init, accum, rate, wd0, inf) {
-  let port = init;
-  const data = [];
+  const mRate = Math.pow(1 + rate, 1 / 12) - 1;
   const wdAge = SA + accum;
+  let port = init, depleted = false;
+  const data = [];
   for (let y = 0; y <= TOT; y++) {
-    data.push(Math.max(0, Math.round(port)));
+    data.push(depleted ? 0 : Math.round(port));
+    if (depleted || y === TOT) continue;
     const age = SA + y;
-    if (age >= wdAge) {
-      port = port * (1 + rate) - wd0 * 12 * Math.pow(1 + inf, age - wdAge);
-    } else {
-      port = port * (1 + rate);
+    const wdM = age >= wdAge ? wd0 * Math.pow(1 + inf, age - wdAge) : 0;
+    for (let m = 0; m < 12; m++) {
+      port = port * (1 + mRate) - wdM;
+      if (port <= 0) { port = 0; depleted = true; break; }
     }
-    if (port < 0) { while (data.length <= TOT) data.push(0); break; }
   }
   return data;
 }
@@ -318,6 +331,7 @@ function fv(n) {
   if (n <= 0) return '耗尽';
   if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
   if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n < 1000) return '<$1K';
   return '$' + Math.round(n / 1000) + 'K';
 }
 function fi(n) { return n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : '$' + Math.round(n / 1000) + 'K'; }
@@ -439,7 +453,7 @@ function update() {
   }
 
   /* Result cards */
-  const cps = [...new Set([wdAge, 65, 75, 85, 95].filter(a => a >= SA && a <= MAX))];
+  const cps = [...new Set([wdAge, 65, 75, 85, 95].filter(a => a >= SA && a <= MAX))].sort((a, b) => a - b);
   document.getElementById('rcards').innerHTML = RATES.map((r, i) => {
     const da  = deps[i];
     const cls = da === null ? 'tok' : (da >= 82 ? 'twarn' : 'tbad');
